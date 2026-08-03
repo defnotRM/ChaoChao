@@ -60,10 +60,9 @@ git merge origin/main
 ```
 คำอธิบาย
 
-git fetch origin --> ดึงข้อมูลและ Commit ล่าสุดจาก GitHub โดยยังไม่แก้ไขโค้ดในเครื่อง
-git switch <your-branch> --> สลับไปยัง Branch ตัวเอง
-git merge origin/main --> รวมการเปลี่ยนแปลงล่าสุดจาก Branch main เข้า Branch ของตัวเอง
-
+- `git fetch origin` ดึงข้อมูลและ Commit ล่าสุดจาก GitHub โดยยังไม่แก้ไขโค้ดในเครื่อง
+- `git switch <your-branch>` สลับไปยัง Branch ของตัวเอง
+- `git merge origin/main` รวมการเปลี่ยนแปลงล่าสุดจาก Branch `main` เข้า Branch ของตัวเอง
 
 เมื่อทำงานเสร็จ
 
@@ -72,10 +71,10 @@ git add .
 git commit -m "your message"
 git push
 ```
-
-git add . --> เพิ่มไฟล์ที่มีการเปลี่ยนแปลงทั้งหมดเข้าสู่ Staging Area
-git commit -m "your message" --> บันทึกการเปลี่ยนแปลงพร้อมข้อความอธิบายสิ่งที่แก้ไข เช่น feat: add login page
-git push --> อัปโหลด Commit ล่าสุดจาก Branch ของตัวเองขึ้น GitHub
+คําอธิบาย
+- `git add .`  เพิ่มไฟล์ที่มีการเปลี่ยนแปลงทั้งหมดเข้าสู่ Staging Area
+- `git commit -m "your message"`  บันทึกการเปลี่ยนแปลงพร้อมข้อความอธิบายสิ่งที่แก้ไข เช่น `your message`
+- `git push`  อัปโหลด Commit ล่าสุดจาก Branch ของตัวเองขึ้น GitHub
 
 จากนั้นเปิด **Pull Request** จาก Branch ของตัวเองเข้า `main`
 
