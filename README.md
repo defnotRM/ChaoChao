@@ -5,8 +5,8 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/<owner>/<repository>.git
-cd <repository>
+git clone https://github.com/defnotRM/ChaoChao.git
+cd ChaoChao
 ```
 
 ### 2. switch ไปยัง Branch ของตัวเอง
