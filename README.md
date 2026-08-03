@@ -11,19 +11,25 @@ cd ChaoChao
 
 ### 2. switch ไปยัง Branch ของตัวเอง
 
-ดูรายการ Branch
+ดูรายการ Branch ทั้งหมด บน remote repo
 
 ```bash
 git branch -r
 ```
 
-สลับไปยัง Branch ของตัวเอง
+ดูรายการ Branch ทั้งหมด บน local ในเครื่องตัวเอง
+
+```bash
+git branch 
+```
+
+สลับไปยัง Branch ของตัวเอง (git version ใหม่ๆ ปกติมันจะสร้าง local branch ที่ track กับ remote branch ของตัวเองให้อัตโนมัติ)
 
 ```bash
 git switch <your-branch>
 ```
 
-หากยังไม่มี Branch ในเครื่อง (หลังจาก clone ครั้งแรก)
+หากยังไม่มี Branch ในเครื่อง (เฉพาะถ้ามันไม่มันยังไม่สร้าง local branch ที่ track กับ remote branch ให้นะ)
 
 ```bash
 git switch --track origin/<your-branch>
