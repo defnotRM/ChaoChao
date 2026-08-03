@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Name
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/<owner>/<repository>.git
+cd <repository>
+```
+
+### 2. Checkout ไปยัง Branch ของตัวเอง
+
+ดูรายการ Branch
+
+```bash
+git branch -r
+```
+
+สลับไปยัง Branch ของตัวเอง
+
+```bash
+git switch <your-branch>
+```
+
+หากยังไม่มี Branch ในเครื่อง
+
+```bash
+git switch --track origin/<your-branch>
+```
+
+### 3. ติดตั้ง Dependencies
+
+```bash
+npm install
+```
+
+### 4. รันโปรเจกต์
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+จากนั้นเปิด
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Workflow
 
-To learn more about Next.js, take a look at the following resources:
+ก่อนเริ่มทำงานทุกครั้ง ให้อัปเดต `main`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+git checkout main
+git pull origin main
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+กลับไปยัง Branch ของตัวเอง
 
-## Deploy on Vercel
+```bash
+git checkout <your-branch>
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Merge `main` เข้ามา
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+git merge main
+```
+
+เมื่อทำงานเสร็จ
+
+```bash
+git add .
+git commit -m "feat: your message"
+git push
+```
+
+จากนั้นเปิด **Pull Request** จาก Branch ของตัวเองเข้า `main`
+
+---
+
+## Rules
+
+* ทำงานบน Branch ของตัวเองเท่านั้น
+* ห้าม Commit หรือ Push ลง `main` โดยตรง
+* อัปเดต Branch ของตัวเองจาก `main` ก่อนเริ่มงานทุกครั้ง
+* เปิด Pull Request ก่อน Merge เข้า `main`
