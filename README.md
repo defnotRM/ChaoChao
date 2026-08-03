@@ -1,4 +1,4 @@
-# Project Name
+# ChaoChao
 
 ## Getting Started
 
@@ -9,7 +9,7 @@ git clone https://github.com/<owner>/<repository>.git
 cd <repository>
 ```
 
-### 2. Checkout ไปยัง Branch ของตัวเอง
+### 2. switch ไปยัง Branch ของตัวเอง
 
 ดูรายการ Branch
 
@@ -23,7 +23,7 @@ git branch -r
 git switch <your-branch>
 ```
 
-หากยังไม่มี Branch ในเครื่อง
+หากยังไม่มี Branch ในเครื่อง (หลังจาก clone ครั้งแรก)
 
 ```bash
 git switch --track origin/<your-branch>
@@ -51,32 +51,31 @@ http://localhost:3000
 
 ## Workflow
 
-ก่อนเริ่มทำงานทุกครั้ง ให้อัปเดต `main`
+ก่อนเริ่มทำงานทุกครั้ง ให้อัปเดต Branch ของตัวเองด้วย `main`
 
 ```bash
-git checkout main
-git pull origin main
+git fetch origin 
+git switch <your-branch>
+git merge origin/main
 ```
+คำอธิบาย
 
-กลับไปยัง Branch ของตัวเอง
+git fetch origin --> ดึงข้อมูลและ Commit ล่าสุดจาก GitHub โดยยังไม่แก้ไขโค้ดในเครื่อง
+git switch <your-branch> --> สลับไปยัง Branch ตัวเอง
+git merge origin/main --> รวมการเปลี่ยนแปลงล่าสุดจาก Branch main เข้า Branch ของตัวเอง
 
-```bash
-git checkout <your-branch>
-```
-
-Merge `main` เข้ามา
-
-```bash
-git merge main
-```
 
 เมื่อทำงานเสร็จ
 
 ```bash
 git add .
-git commit -m "feat: your message"
+git commit -m "your message"
 git push
 ```
+
+git add . --> เพิ่มไฟล์ที่มีการเปลี่ยนแปลงทั้งหมดเข้าสู่ Staging Area
+git commit -m "your message" --> บันทึกการเปลี่ยนแปลงพร้อมข้อความอธิบายสิ่งที่แก้ไข เช่น feat: add login page
+git push --> อัปโหลด Commit ล่าสุดจาก Branch ของตัวเองขึ้น GitHub
 
 จากนั้นเปิด **Pull Request** จาก Branch ของตัวเองเข้า `main`
 
