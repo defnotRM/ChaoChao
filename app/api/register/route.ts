@@ -5,15 +5,15 @@ export async function POST(request: Request) {
   const { username,password, nationalId, role } = await request.json();
 
   // role กำหนดว่าจะเช็ค/insert ที่ table ไหน
-  const tableName = role === "tenant" ? "tenants" : "landlords";
+  const tableName = role === "lessor" ? "lessors" : "lessees";
 
   // 1. เช็ค username ซ้ำ - ต้องเช็คทั้ง 2 table เพราะ username ห้ามซ้ำข้าม role
-  const [tenantUsername, landlordUsername] = await Promise.all([
-    supabase.from("tenants").select("id").eq("username", username).maybeSingle(),
-    supabase.from("landlords").select("id").eq("username", username).maybeSingle(),
+  const [lessorUsername, lesseeUsername] = await Promise.all([
+    supabase.from("lessors").select("id").eq("username", username).maybeSingle(),
+    supabase.from("lessees").select("id").eq("username", username).maybeSingle(),
   ]);
 
-  if (tenantUsername.data || landlordUsername.data) {
+  if (lessorUsername.data || lesseeUsername.data) {
     return NextResponse.json(
       { message: "username นี้ถูกใช้ไปแล้ว" },
       { status: 409 }

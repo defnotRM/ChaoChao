@@ -20,7 +20,7 @@ export default function LoginForm() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      role: "tenant",
+      role: "lessee",
     },
   });
 
@@ -188,7 +188,7 @@ export default function LoginForm() {
                 <label className="relative cursor-pointer">
                   <input
                     type="radio"
-                    value="tenant"
+                    value="lessor"
                     className="peer sr-only"
                     {...register("role")}
                   />
@@ -199,7 +199,7 @@ export default function LoginForm() {
                 <label className="relative cursor-pointer">
                   <input
                     type="radio"
-                    value="landlord"
+                    value="lessee"
                     className="peer sr-only"
                     {...register("role")}
                   />

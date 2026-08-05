@@ -232,7 +232,7 @@ export default function RegisterForm() {
                 <label className="relative cursor-pointer">
                   <input
                     type="radio"
-                    value="tenant"
+                    value="lessor"
                     className="peer sr-only"
                     {...register("role")}
                   />
@@ -243,7 +243,7 @@ export default function RegisterForm() {
                 <label className="relative cursor-pointer">
                   <input
                     type="radio"
-                    value="landlord"
+                    value="lessee"
                     className="peer sr-only"
                     {...register("role")}
                   />
