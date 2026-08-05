@@ -9,14 +9,14 @@ export const loginSchema = z.object({
     .string()
     .min(1, "กรุณากรอกรหัสผ่าน"),
 
-  role: z.enum(["tenant", "landlord"], {
+  role: z.enum(["lessor", "lessee"], {
     message: "กรุณาเลือกประเภทผู้ใช้งาน",
   }),
 });
 
 export const roleLabels = {
-  tenant: "ผู้เช่า",
-  landlord: "ผู้ให้เช่า",
+  lessor: "ผู้เช่า",
+  lessee: "ผู้ให้เช่า",
 } as const;
 
 export type LoginFormData = z.infer<typeof loginSchema>;

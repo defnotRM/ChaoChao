@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 export async function POST(request: Request) {
   const { username, password, role } = await request.json();
 
-  const tableName = role === "tenant" ? "tenants" : "landlords";
+  const tableName = role === "lessor" ? "lessors" : "lessees";
 
   // หา user จาก username ใน table ตาม role ที่เลือก
   const { data: user, error } = await supabase
