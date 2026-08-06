@@ -232,7 +232,7 @@ export default function RegisterForm() {
                 <label className="relative cursor-pointer">
                   <input
                     type="radio"
-                    value="lessor"
+                    value="renter"
                     className="peer sr-only"
                     {...register("role")}
                   />
@@ -243,12 +243,24 @@ export default function RegisterForm() {
                 <label className="relative cursor-pointer">
                   <input
                     type="radio"
-                    value="lessee"
+                    value="lender"
                     className="peer sr-only"
                     {...register("role")}
                   />
                   <div className="rounded-xl border-2 border-[#c0e6fd] py-3 text-center text-sm font-medium text-[#3f6593] transition hover:border-[#3f6593] peer-checked:border-[#1b3554] peer-checked:bg-[#1b3554] peer-checked:text-white">
                     ผู้ให้เช่า
+                  </div>
+                </label>
+                
+                <label className="relative cursor-pointer">
+                  <input
+                    type="radio"
+                    value="both"
+                    className="peer sr-only"
+                    {...register("role")}
+                  />
+                  <div className="rounded-xl border-2 border-[#c0e6fd] py-3 text-center text-sm font-medium text-[#3f6593] transition hover:border-[#3f6593] peer-checked:border-[#1b3554] peer-checked:bg-[#1b3554] peer-checked:text-white">
+                    ทั้งผู้เช่าและผู้ให้เช่า
                   </div>
                 </label>
               </div>
