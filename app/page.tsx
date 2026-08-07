@@ -38,7 +38,7 @@ export default function Home() {
           </p>
 
           <Link
-            href="/lessee/hireproduct"
+            href="/renter/hireproduct"
             className="mt-6 inline-flex h-11 items-center rounded-full bg-[#1b3554] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#000f22] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
           >
             Start Now
@@ -50,7 +50,7 @@ export default function Home() {
         <SectionHeading
           title="หมวดหมู่ยอดนิยม"
           action={
-            <Link href="/lessee/hireproduct"
+            <Link href="/renter/hireproduct"
             className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline">
               ดูทั้งหมด <ArrowRight className="h-4 w-4" />
             </Link>}
@@ -64,7 +64,7 @@ export default function Home() {
         <SectionHeading
           title="อุปกรณ์แนะนำ"
           action={
-            <Link href="/lessee/hireproduct"
+            <Link href="/renter/hireproduct"
             className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline">
               ดูทั้งหมด <ArrowRight className="h-4 w-4" />
             </Link>}

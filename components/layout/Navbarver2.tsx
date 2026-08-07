@@ -34,7 +34,7 @@ function Brand() {
 function SearchBar({ mobile = false }: { mobile?: boolean }) {
   return (
     <form
-      action="/lessee/hireproduct"
+      action="/renter/hireproduct"
       role="search"
       className={mobile ? "w-full" : "mx-8 min-w-0 max-w-2xl flex-1"}
     >
@@ -156,7 +156,7 @@ export default function Navbarver2() {
                 หน้าแรก
               </Link>
               <Link
-                href="/lessee/hireproduct"
+                href="/renter/hireproduct"
                 onClick={() => setIsOpen(false)}
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-sky-50 hover:text-[#17326b]"
               >
