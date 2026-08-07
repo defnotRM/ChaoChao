@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { BadgeCheck} from "lucide-react";
-
+import { ArrowRight, BadgeCheck } from "lucide-react";
+import { SectionHeading } from "@/components/products/designSystem";
+import { ProductCard } from "@/components/products/ProductCard";
+import { getMockProducts } from "@/lib/mock/product";
 
 export default function Home() {
+  const featured = getMockProducts().slice(0, 4);
+
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
+    <div className="space-y-12 px-4 py-8 sm:px-6 lg:px-8">
       <section className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-100 via-white to-gray-100 p-6 shadow-sm sm:p-10 lg:p-14">
         <div
           aria-hidden="true"
@@ -17,7 +21,7 @@ export default function Home() {
 
         <div className="relative z-10 max-w-2xl">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 backdrop-blur">
-          <BadgeCheck aria-hidden="true" className="h-3.5 w-3.5" />
+            <BadgeCheck aria-hidden="true" className="h-3.5 w-3.5" />
             แพลตฟอร์มเช่าอุปกรณ์ที่คุณวางใจได้
           </span>
 
@@ -39,6 +43,36 @@ export default function Home() {
           >
             Start Now
           </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl">
+        <SectionHeading
+          title="หมวดหมู่ยอดนิยม"
+          action={
+            <Link href="/lessee/hireproduct"
+            className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline">
+              ดูทั้งหมด <ArrowRight className="h-4 w-4" />
+            </Link>}
+        />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl">
+        <SectionHeading
+          title="อุปกรณ์แนะนำ"
+          action={
+            <Link href="/lessee/hireproduct"
+            className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline">
+              ดูทั้งหมด <ArrowRight className="h-4 w-4" />
+            </Link>}
+        />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {featured.map((l) => (
+            <ProductCard key={l.id} listing={l} />
+          ))}
         </div>
       </section>
     </div>

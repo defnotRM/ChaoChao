@@ -1,8 +1,40 @@
 import type { ReactNode } from "react";
 import {
-  ImageIcon,
+  BadgeCheck,
+  Camera,
+  Dumbbell,
+  Luggage,
+  PartyPopper,
+  Speaker,
   Star,
+  Tent,
+  Video,
+  Wrench,
+  ImageIcon,
+  type LucideIcon,
 } from "lucide-react";
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  camera: Camera,
+  "party-popper": PartyPopper,
+  speaker: Speaker,
+  tent: Tent,
+  wrench: Wrench,
+  dumbbell: Dumbbell,
+  video: Video,
+  luggage: Luggage,
+};
+
+export function CategoryIcon({
+  name,
+  className,
+}: {
+  name: string;
+  className?: string;
+}) {
+  const Icon = CATEGORY_ICONS[name] ?? Camera;
+  return <Icon className={className} />;
+}
 
 function joinClassNames(...classNames: Array<string | undefined | false>) {
   return classNames.filter(Boolean).join(" ");
@@ -102,5 +134,29 @@ export function StatusChip({
       )}
       {children}
     </span>
+  );
+}
+
+export function SectionHeading({
+  title,
+  action,
+  className,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={joinClassNames(
+        "mb-4 flex items-end justify-between gap-4",
+        className,
+      )}
+    >
+      <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+        {title}
+      </h2>
+      {action}
+    </div>
   );
 }

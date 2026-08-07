@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BadgeCheck, Heart, MapPin } from "lucide-react";
+import { Heart, MapPin } from "lucide-react";
 
 import type { Product } from "@/lib/types/product";
-import { PlaceholderImage, Rating, StatusChip } from "./primitives";
+import { PlaceholderImage, Rating, StatusChip } from "./designSystem";
 
 type ProductCardProps = {
   listing: Product;
@@ -20,6 +20,10 @@ const thbFormatter = new Intl.NumberFormat("th-TH", {
 
 function thb(value: number) {
   return thbFormatter.format(value);
+}
+
+function formatLocations(locations: Product["locations"]) {
+  return locations.map((location) => location.description).join(" • ");
 }
 
 function ListingStatus({ status }: { status: Product["status"] }) {
@@ -65,7 +69,7 @@ export function ProductCard({
           className="flex gap-3 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 sm:gap-4"
         >
           <PlaceholderImage
-            seed={listing.imageSeeds[0]}
+            seed={listing.imageUrls[0] ?? listing.title}
             className="h-28 w-28 shrink-0 sm:h-32 sm:w-32"
           />
 
@@ -75,7 +79,9 @@ export function ProductCard({
             </h3>
             <div className="mt-1.5 flex items-center gap-1 text-xs text-slate-500">
               <MapPin aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{listing.location}</span>
+              <span className="truncate" title={formatLocations(listing.locations)}>
+                {formatLocations(listing.locations)}
+              </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Rating value={listing.rating} count={listing.reviewCount} />
@@ -97,7 +103,7 @@ export function ProductCard({
   }
 
   return (
-    <article className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-sky-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md">
+    <article className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
       {saveButton}
       <Link
         href={`/product/${listing.id}`}
@@ -105,8 +111,8 @@ export function ProductCard({
       >
         <div className="relative">
           <PlaceholderImage
-            seed={listing.imageSeeds[0]}
-            className="aspect-[4/3] w-full"
+            seed={listing.imageUrls[0] ?? listing.title}
+            className="aspect-[4/3] w-full lg:aspect-[16/10]"
             rounded="rounded-none"
           />
           <div className="absolute bottom-2 left-2">
@@ -120,16 +126,12 @@ export function ProductCard({
           </h3>
           <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
             <MapPin aria-hidden="true" className="h-3 w-3 shrink-0" />
-            <span className="truncate">{listing.location}</span>
+            <span className="truncate" title={formatLocations(listing.locations)}>
+              {formatLocations(listing.locations)}
+            </span>
           </div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <Rating value={listing.rating} count={listing.reviewCount} />
-            {listing.ownerVerified && (
-              <StatusChip tone="info" dot={false} className="px-2">
-                <BadgeCheck aria-hidden="true" className="h-3.5 w-3.5" />
-                ยืนยันตัวตน
-              </StatusChip>
-            )}
           </div>
           <div className="mt-2 flex items-baseline gap-1 border-t border-slate-200 pt-2">
             <span className="text-lg font-bold text-[#1b3554]">
