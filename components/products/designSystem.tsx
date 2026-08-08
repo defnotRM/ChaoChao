@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import {
-  BadgeCheck,
   Camera,
   Dumbbell,
   Luggage,
@@ -149,7 +148,7 @@ export function SectionHeading({
   return (
     <div
       className={joinClassNames(
-        "mb-4 flex items-end justify-between gap-4",
+        "mb-5 flex items-end justify-between gap-4",
         className,
       )}
     >

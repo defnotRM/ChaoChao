@@ -9,7 +9,7 @@ export default function HireProductPage() {
   const products = getMockProducts();
 
   return (
-    <section className="min-h-screen bg-slate-50/50 py-8 sm:py-10">
+    <section className="min-h-screen bg-[#f8fafc] py-8 sm:py-10">
       <div className="mx-auto mb-20 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-7">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">

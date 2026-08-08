@@ -1,4 +1,5 @@
 export type ItemStatus = "available" | "rented" | "maintenance" | "inactive";
+export type ItemCondition = "like-new" | "good" | "fair";
 
 // Database rows used by the product/listing feature.
 export interface ItemCategoryRow {
@@ -15,6 +16,7 @@ export interface ItemRow {
   original_price: number;
   rental_fee_per_day: number;
   deposit: number;
+  condition: ItemCondition;
   status: ItemStatus;
   create_at: string;
 }
@@ -56,6 +58,31 @@ export interface ItemRatingSummary {
   review_count: number;
 }
 
+export interface UserProfileRow {
+  user_id: number;
+  display_name: string;
+  rating: number;
+  review_count: number;
+  response_rate: number;
+  is_verified: boolean;
+  joined_at: string;
+}
+
+export interface ItemRentalTermRow {
+  term_id: number;
+  item_id: number;
+  description: string;
+}
+
+export interface ItemReviewRow {
+  review_id: number;
+  item_id: number;
+  reviewer_name: string;
+  rating: number;
+  comment: string;
+  create_at: string;
+}
+
 export interface ProductLocation {
   id: string;
   description: string;
@@ -66,6 +93,24 @@ export interface ProductLocation {
   district: string;
   province: string;
   fullAddress: string;
+}
+
+export interface ProductOwner {
+  id: string;
+  displayName: string;
+  rating: number;
+  reviewCount: number;
+  responseRate: number;
+  isVerified: boolean;
+  joinedAt: string;
+}
+
+export interface ProductReview {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
 // UI model ที่ได้จากการ join ตาราง Product ด้านบน ไม่ใช่ database table.
@@ -79,10 +124,14 @@ export interface Product {
   originalPrice: number;
   pricePerDay: number;
   deposit: number;
+  condition: ItemCondition;
   rating: number;
   reviewCount: number;
   locations: ProductLocation[];
   ownerId: string;
+  owner: ProductOwner;
+  rentalTerms: string[];
+  reviews: ProductReview[];
   status: ItemStatus;
   availability: Array<{
     startDate: string;

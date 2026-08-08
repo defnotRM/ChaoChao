@@ -4,8 +4,11 @@ import type {
   ItemImageRow,
   ItemLocationRow,
   ItemRatingSummary,
+  ItemRentalTermRow,
+  ItemReviewRow,
   ItemRow,
   Product,
+  UserProfileRow,
 } from "@/lib/types/product";
 
 // Mock table: ItemCategory
@@ -31,6 +34,7 @@ export const mockItems: ItemRow[] = [
     original_price: 72000,
     rental_fee_per_day: 900,
     deposit: 5000,
+    condition: "like-new",
     status: "available",
     create_at: "2026-07-01T09:00:00+07:00",
   },
@@ -43,6 +47,7 @@ export const mockItems: ItemRow[] = [
     original_price: 18900,
     rental_fee_per_day: 600,
     deposit: 2500,
+    condition: "good",
     status: "available",
     create_at: "2026-07-03T10:30:00+07:00",
   },
@@ -55,6 +60,7 @@ export const mockItems: ItemRow[] = [
     original_price: 8500,
     rental_fee_per_day: 350,
     deposit: 1200,
+    condition: "good",
     status: "rented",
     create_at: "2026-07-05T14:00:00+07:00",
   },
@@ -67,6 +73,7 @@ export const mockItems: ItemRow[] = [
     original_price: 7900,
     rental_fee_per_day: 250,
     deposit: 1500,
+    condition: "fair",
     status: "available",
     create_at: "2026-07-08T08:45:00+07:00",
   },
@@ -79,6 +86,7 @@ export const mockItems: ItemRow[] = [
     original_price: 15900,
     rental_fee_per_day: 450,
     deposit: 2000,
+    condition: "like-new",
     status: "available",
     create_at: "2026-07-10T11:15:00+07:00",
   },
@@ -91,6 +99,7 @@ export const mockItems: ItemRow[] = [
     original_price: 12500,
     rental_fee_per_day: 500,
     deposit: 1800,
+    condition: "good",
     status: "maintenance",
     create_at: "2026-07-12T13:20:00+07:00",
   },
@@ -103,6 +112,7 @@ export const mockItems: ItemRow[] = [
     original_price: 9800,
     rental_fee_per_day: 180,
     deposit: 1000,
+    condition: "good",
     status: "available",
     create_at: "2026-07-15T16:00:00+07:00",
   },
@@ -115,6 +125,7 @@ export const mockItems: ItemRow[] = [
     original_price: 28500,
     rental_fee_per_day: 400,
     deposit: 3000,
+    condition: "fair",
     status: "inactive",
     create_at: "2026-07-18T09:40:00+07:00",
   },
@@ -123,25 +134,33 @@ export const mockItems: ItemRow[] = [
 const storageBaseUrl =
   "https://example.supabase.co/storage/v1/object/public/item-images";
 
+// จำนวนรูปไม่ตายตัว ขึ้นอยู่กับรูปที่ผู้ให้เช่าเพิ่มให้สินค้าแต่ละชิ้น
+const mockImageCountByItem: Record<number, number> = {
+  1: 5,
+  2: 4,
+  3: 3,
+  4: 4,
+  5: 6,
+  6: 3,
+  7: 4,
+  8: 3,
+};
+
 // Mock table: ItemImage
-export const mockItemImages: ItemImageRow[] = mockItems.flatMap((item) => [
-  {
-    image_id: item.item_id * 10 + 1,
-    item_id: item.item_id,
-    is_primary: true,
-    sequence: 1,
-    image_url: `${storageBaseUrl}/${item.item_id}/cover.jpg`,
-    create_at: item.create_at,
-  },
-  {
-    image_id: item.item_id * 10 + 2,
-    item_id: item.item_id,
-    is_primary: false,
-    sequence: 2,
-    image_url: `${storageBaseUrl}/${item.item_id}/detail.jpg`,
-    create_at: item.create_at,
-  },
-]);
+export const mockItemImages: ItemImageRow[] = mockItems.flatMap((item) =>
+  Array.from({ length: mockImageCountByItem[item.item_id] ?? 1 }, (_, index) => {
+    const sequence = index + 1;
+
+    return {
+      image_id: item.item_id * 100 + sequence,
+      item_id: item.item_id,
+      is_primary: sequence === 1,
+      sequence,
+      image_url: `${storageBaseUrl}/${item.item_id}/${sequence === 1 ? "cover" : `detail-${sequence}`}.jpg`,
+      create_at: item.create_at,
+    };
+  }),
+);
 
 // Mock table: ItemLocation
 export const mockItemLocations: ItemLocationRow[] = [
@@ -193,6 +212,47 @@ export const mockItemRatingSummaries: ItemRatingSummary[] = [
   { item_id: 8, rating: 4.8, review_count: 29 },
 ];
 
+// Mock table: UserProfile สำหรับข้อมูลผู้ให้เช่าในหน้ารายละเอียด
+export const mockUserProfiles: UserProfileRow[] = [
+  { user_id: 101, display_name: "คุณสราวุธ", rating: 4.9, review_count: 68, response_rate: 98, is_verified: true, joined_at: "2024-02-12" },
+  { user_id: 102, display_name: "คุณพิมพ์ชนก", rating: 4.8, review_count: 41, response_rate: 96, is_verified: true, joined_at: "2024-06-08" },
+  { user_id: 103, display_name: "คุณธนกร", rating: 4.7, review_count: 32, response_rate: 93, is_verified: true, joined_at: "2025-01-19" },
+  { user_id: 104, display_name: "คุณณัฐวุฒิ", rating: 4.9, review_count: 77, response_rate: 99, is_verified: true, joined_at: "2023-11-04" },
+  { user_id: 105, display_name: "คุณชลธิชา", rating: 4.8, review_count: 55, response_rate: 97, is_verified: true, joined_at: "2024-03-21" },
+  { user_id: 106, display_name: "คุณวรพล", rating: 4.6, review_count: 24, response_rate: 91, is_verified: true, joined_at: "2025-05-15" },
+  { user_id: 107, display_name: "คุณกานต์", rating: 4.8, review_count: 38, response_rate: 95, is_verified: true, joined_at: "2024-09-02" },
+];
+
+const defaultRentalTerms = [
+  "แสดงบัตรประชาชนหรือเอกสารยืนยันตัวตนก่อนรับอุปกรณ์",
+  "รับและคืนสินค้าตามวัน เวลา และจุดนัดรับที่ตกลงกัน",
+  "หากอุปกรณ์เสียหายหรือสูญหาย ผู้เช่ารับผิดชอบตามค่าเสียหายจริง",
+];
+
+// Mock table: ItemRentalTerm แยกเป็นหลายแถวเพื่อรองรับเงื่อนไขต่อสินค้า
+export const mockItemRentalTerms: ItemRentalTermRow[] = mockItems.flatMap(
+  (item) =>
+    defaultRentalTerms.map((description, index) => ({
+      term_id: item.item_id * 10 + index + 1,
+      item_id: item.item_id,
+      description,
+    })),
+);
+
+// Mock table: ItemReview เป็นรีวิวตัวอย่างล่าสุด ไม่ใช่รีวิวทั้งหมดที่นำไป aggregate คะแนน
+export const mockItemReviews: ItemReviewRow[] = [
+  { review_id: 1, item_id: 1, reviewer_name: "มินตรา", rating: 5, comment: "กล้องสภาพดีมาก เลนส์ใส อุปกรณ์ครบ และผู้ให้เช่าแนะนำการใช้งานละเอียดค่ะ", create_at: "2026-07-28T18:30:00+07:00" },
+  { review_id: 2, item_id: 1, reviewer_name: "ภาคิน", rating: 5, comment: "นัดรับตรงเวลา กล้องใช้งานได้ดี แบตเตอรี่เพียงพอสำหรับงานทั้งวัน", create_at: "2026-07-18T20:15:00+07:00" },
+  { review_id: 3, item_id: 1, reviewer_name: "วริศรา", rating: 4, comment: "ภาพสวยและชุดอุปกรณ์พร้อมใช้งาน ขั้นตอนรับคืนสะดวกมาก", create_at: "2026-07-09T16:45:00+07:00" },
+  { review_id: 4, item_id: 2, reviewer_name: "กิตติ", rating: 5, comment: "เสียงดังชัดเจน แบตอึด เหมาะกับงานเลี้ยงมากครับ", create_at: "2026-07-25T21:10:00+07:00" },
+  { review_id: 5, item_id: 3, reviewer_name: "พลอย", rating: 5, comment: "เต็นท์สะอาด กางง่าย และกันฝนได้ดี", create_at: "2026-07-22T19:00:00+07:00" },
+  { review_id: 6, item_id: 4, reviewer_name: "อนุชา", rating: 5, comment: "สว่านแรงดี แบตเตอรี่สองก้อนใช้งานต่อเนื่องได้สบาย", create_at: "2026-07-20T17:40:00+07:00" },
+  { review_id: 7, item_id: 5, reviewer_name: "ชญานิน", rating: 5, comment: "กล้องใหม่มาก ไฟล์คมชัด และมีอุปกรณ์ยึดให้เลือกครบ", create_at: "2026-07-27T13:25:00+07:00" },
+  { review_id: 8, item_id: 6, reviewer_name: "ธันวา", rating: 4, comment: "ไฟสว่างดี ปรับสีได้หลายแบบ เหมาะกับถ่ายสินค้า", create_at: "2026-07-14T22:05:00+07:00" },
+  { review_id: 9, item_id: 7, reviewer_name: "อรวรรณ", rating: 4, comment: "กระเป๋าจุของได้เยอะ ล้อลื่นและรับคืนสะดวก", create_at: "2026-07-16T11:50:00+07:00" },
+  { review_id: 10, item_id: 8, reviewer_name: "เมธัส", rating: 5, comment: "จักรยานขี่ดี เกียร์ลื่น อุปกรณ์ความปลอดภัยครบ", create_at: "2026-07-12T18:20:00+07:00" },
+];
+
 function formatFullAddress(location: ItemLocationRow) {
   return [
     location.no === "-" ? null : location.no,
@@ -225,6 +285,13 @@ function mapItemToProduct(item: ItemRow): Product {
   const rating = mockItemRatingSummaries.find(
     (entry) => entry.item_id === item.item_id,
   );
+  const owner = mockUserProfiles.find((entry) => entry.user_id === item.user_id);
+  const rentalTerms = mockItemRentalTerms.filter(
+    (entry) => entry.item_id === item.item_id,
+  );
+  const reviews = mockItemReviews
+    .filter((entry) => entry.item_id === item.item_id)
+    .sort((a, b) => b.create_at.localeCompare(a.create_at));
 
   return {
     id: String(item.item_id),
@@ -236,6 +303,7 @@ function mapItemToProduct(item: ItemRow): Product {
     originalPrice: item.original_price,
     pricePerDay: item.rental_fee_per_day,
     deposit: item.deposit,
+    condition: item.condition,
     rating: rating?.rating ?? 0,
     reviewCount: rating?.review_count ?? 0,
     locations: locations.map((location) => ({
@@ -250,6 +318,23 @@ function mapItemToProduct(item: ItemRow): Product {
       fullAddress: formatFullAddress(location),
     })),
     ownerId: String(item.user_id),
+    owner: {
+      id: String(item.user_id),
+      displayName: owner?.display_name ?? `ผู้ให้เช่า #${item.user_id}`,
+      rating: owner?.rating ?? 0,
+      reviewCount: owner?.review_count ?? 0,
+      responseRate: owner?.response_rate ?? 0,
+      isVerified: owner?.is_verified ?? false,
+      joinedAt: owner?.joined_at ?? item.create_at,
+    },
+    rentalTerms: rentalTerms.map((term) => term.description),
+    reviews: reviews.map((review) => ({
+      id: String(review.review_id),
+      reviewerName: review.reviewer_name,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.create_at,
+    })),
     status: item.status,
     availability: availability.map((entry) => ({
       startDate: entry.start_date,

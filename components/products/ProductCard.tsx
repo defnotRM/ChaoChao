@@ -65,7 +65,7 @@ export function ProductCard({
       <article className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-sky-300 hover:shadow-md">
         {saveButton}
         <Link
-          href={`/product/${listing.id}`}
+          href={`/renter/hireproduct/${listing.id}`}
           className="flex gap-3 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 sm:gap-4"
         >
           <PlaceholderImage
@@ -106,7 +106,7 @@ export function ProductCard({
     <article className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md">
       {saveButton}
       <Link
-        href={`/product/${listing.id}`}
+        href={`/renter/hireproduct/${listing.id}`}
         className="flex flex-1 flex-col focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
       >
         <div className="relative">
