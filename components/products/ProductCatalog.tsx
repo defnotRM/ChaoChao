@@ -1,16 +1,70 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RotateCcw, SlidersHorizontal } from "lucide-react";
+import { Grid2X2, List, RotateCcw, SlidersHorizontal } from "lucide-react";
 
-import type { Product } from "@/lib/types/product";
+import type { ItemCategoryRow, Product } from "@/lib/types/product";
 import ProductCard from "./ProductCard";
 
 type ProductCatalogProps = {
+  itemCategories: ItemCategoryRow[];
   products: Product[];
 };
 
-export default function ProductCatalog({ products }: ProductCatalogProps) {
+type ProductFilterCriteria = {
+  minPrice: number | null;
+  maxPrice: number | null;
+  minRating: number;
+  startDate: string;
+  endDate: string;
+  onlyAvailable: boolean;
+  hasInvalidRange: boolean;
+};
+
+type CatalogLayout = "grid" | "list";
+type CatalogSort = "rating-desc" | "newest" | "price-asc" | "price-desc";
+
+function matchesNonCategoryFilters(
+  product: Product,
+  criteria: ProductFilterCriteria,
+) {
+  if (criteria.hasInvalidRange) return false;
+
+  const matchesMinPrice =
+    criteria.minPrice === null || product.pricePerDay >= criteria.minPrice;
+  const matchesMaxPrice =
+    criteria.maxPrice === null || product.pricePerDay <= criteria.maxPrice;
+  const matchesRating = product.rating >= criteria.minRating;
+  const matchesStatus =
+    !criteria.onlyAvailable || product.status === "available";
+  const matchesDate =
+    (!criteria.startDate && !criteria.endDate) ||
+    product.availability.some((range) => {
+      const containsStart =
+        !criteria.startDate ||
+        (range.startDate <= criteria.startDate &&
+          range.endDate >= criteria.startDate);
+      const containsEnd =
+        !criteria.endDate ||
+        (range.startDate <= criteria.endDate &&
+          range.endDate >= criteria.endDate);
+
+      return containsStart && containsEnd;
+    });
+
+  return (
+    matchesMinPrice &&
+    matchesMaxPrice &&
+    matchesRating &&
+    matchesStatus &&
+    matchesDate
+  );
+}
+
+export default function ProductCatalog({
+  itemCategories,
+  products,
+}: ProductCatalogProps) {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -19,23 +73,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
   const [endDate, setEndDate] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  const categories = useMemo(() => {
-    const categoryMap = new Map<string, { id: string; name: string; count: number }>();
-
-    products.forEach((product) => {
-      const current = categoryMap.get(product.categoryId);
-      categoryMap.set(product.categoryId, {
-        id: product.categoryId,
-        name: product.categoryName,
-        count: (current?.count ?? 0) + 1,
-      });
-    });
-
-    return Array.from(categoryMap.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "th"),
-    );
-  }, [products]);
+  const [layout, setLayout] = useState<CatalogLayout>("grid");
+  const [sortBy, setSortBy] = useState<CatalogSort>("rating-desc");
 
   const minPriceValue = minPrice === "" ? null : Number(minPrice);
   const maxPriceValue = maxPrice === "" ? null : Number(maxPrice);
@@ -45,59 +84,85 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
     minPriceValue > maxPriceValue;
   const invalidDateRange = Boolean(startDate && endDate && startDate > endDate);
 
-  const filteredProducts = useMemo(() => {
-    if (invalidPriceRange || invalidDateRange) return [];
+  const filterCriteria = useMemo<ProductFilterCriteria>(
+    () => ({
+      minPrice: minPriceValue,
+      maxPrice: maxPriceValue,
+      minRating,
+      startDate,
+      endDate,
+      onlyAvailable,
+      hasInvalidRange: invalidPriceRange || invalidDateRange,
+    }),
+    [
+      endDate,
+      invalidDateRange,
+      invalidPriceRange,
+      maxPriceValue,
+      minPriceValue,
+      minRating,
+      onlyAvailable,
+      startDate,
+    ],
+  );
 
+  const categories = useMemo(() => {
+    const categoryMap = new Map<string, { id: string; name: string; count: number }>();
+
+    itemCategories.forEach((category) => {
+      categoryMap.set(String(category.category_id), {
+        id: String(category.category_id),
+        name: category.category_name,
+        count: 0,
+      });
+    });
+
+    products.forEach((product) => {
+      const current = categoryMap.get(product.categoryId);
+      categoryMap.set(product.categoryId, {
+        id: product.categoryId,
+        name: current?.name ?? product.categoryName,
+        count:
+          (current?.count ?? 0) +
+          Number(matchesNonCategoryFilters(product, filterCriteria)),
+      });
+    });
+
+    return Array.from(categoryMap.values()).sort((a, b) => {
+      if (a.name === "อื่นๆ") return 1;
+      if (b.name === "อื่นๆ") return -1;
+      return a.name.localeCompare(b.name, "th");
+    });
+  }, [filterCriteria, itemCategories, products]);
+
+  const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesCategory =
         selectedCategoryIds.length === 0 ||
         selectedCategoryIds.includes(product.categoryId);
-      const matchesMinPrice =
-        minPriceValue === null || product.pricePerDay >= minPriceValue;
-      const matchesMaxPrice =
-        maxPriceValue === null || product.pricePerDay <= maxPriceValue;
-      const matchesRating = product.rating >= minRating;
-      const matchesStatus = !onlyAvailable || product.status === "available";
-      const matchesDate =
-        (!startDate && !endDate) ||
-        product.availability.some((range) => {
-          const containsStart =
-            !startDate ||
-            (range.startDate <= startDate && range.endDate >= startDate);
-          const containsEnd =
-            !endDate || (range.startDate <= endDate && range.endDate >= endDate);
 
-          return containsStart && containsEnd;
-        });
-
-      return (
-        matchesCategory &&
-        matchesMinPrice &&
-        matchesMaxPrice &&
-        matchesRating &&
-        matchesStatus &&
-        matchesDate
-      );
+      return matchesCategory && matchesNonCategoryFilters(product, filterCriteria);
     });
-  }, [
-    endDate,
-    invalidDateRange,
-    invalidPriceRange,
-    maxPriceValue,
-    minPriceValue,
-    minRating,
-    onlyAvailable,
-    products,
-    selectedCategoryIds,
-    startDate,
-  ]);
+  }, [filterCriteria, products, selectedCategoryIds]);
 
-  const activeFilterCount =
-    selectedCategoryIds.length +
-    Number(minPrice !== "" || maxPrice !== "") +
-    Number(minRating > 0) +
-    Number(Boolean(startDate || endDate)) +
-    Number(onlyAvailable);
+  const sortedProducts = useMemo(() => {
+    // ใช้ข้อมูลจากที่ Fliter สร้าง Array ใหม่
+    return [...filteredProducts].sort((a, b) => {
+      if (sortBy === "newest") {
+        return b.createdAt.localeCompare(a.createdAt);
+      }
+      // ต่ำไปสูง ติดลบ a ขึ้นก่อน
+      if (sortBy === "price-asc") {
+        return a.pricePerDay - b.pricePerDay;
+      }
+      // สูงไปต่ำ เป็นบวก b ขึ้นก่อน
+      if (sortBy === "price-desc") {
+        return b.pricePerDay - a.pricePerDay;
+      }
+
+      return b.rating - a.rating || b.reviewCount - a.reviewCount;
+    });
+  }, [filteredProducts, sortBy]);
 
   function toggleCategory(categoryId: string) {
     setSelectedCategoryIds((current) =>
@@ -118,15 +183,10 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
   }
 
   const sidebar = (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-[#1b3554]">ตัวกรอง</h2>
-          {activeFilterCount > 0 && (
-            <span className="text-xs font-medium text-sky-600">
-              {activeFilterCount}
-            </span>
-          )}
         </div>
         <button
           type="button"
@@ -138,8 +198,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
         </button>
       </div>
 
-      <fieldset className="border-t border-slate-100 pt-4">
-        <legend className="mb-3 text-sm font-semibold text-slate-800">หมวดหมู่</legend>
+      <fieldset className="border-t border-slate-100 pt-2">
+        <legend className="mb-1 text-sm font-semibold leading-none text-slate-800">หมวดหมู่</legend>
         <div className="space-y-2">
           {categories.map((category) => (
             <label
@@ -159,8 +219,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
         </div>
       </fieldset>
 
-      <fieldset className="border-t border-slate-100 pt-4">
-        <legend className="mb-3 text-sm font-semibold text-slate-800">
+      <fieldset className="border-t border-slate-100 pt-2">
+        <legend className="mb-1 text-sm font-semibold leading-none text-slate-800">
           ค่าเช่าต่อวัน
         </legend>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -195,8 +255,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
         )}
       </fieldset>
 
-      <fieldset className="border-t border-slate-100 pt-4">
-        <legend className="mb-3 text-sm font-semibold text-slate-800">คะแนนรีวิว</legend>
+      <fieldset className="border-t border-slate-100 pt-2">
+        <legend className="mb-1 text-sm font-semibold leading-none text-slate-800">คะแนนรีวิว</legend>
         <select
           value={minRating}
           onChange={(event) => setMinRating(Number(event.target.value))}
@@ -210,8 +270,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
         </select>
       </fieldset>
 
-      <fieldset className="border-t border-slate-100 pt-4">
-        <legend className="mb-3 text-sm font-semibold text-slate-800">
+      <fieldset className="border-t border-slate-100 pt-2">
+        <legend className="mb-1 text-sm font-semibold leading-none text-slate-800">
           วันที่ต้องการเช่า
         </legend>
         <div className="space-y-3">
@@ -244,7 +304,7 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
         </p>
       </fieldset>
 
-      <label className="flex cursor-pointer items-start gap-3 border-t border-slate-100 pt-4">
+      <label className="flex cursor-pointer items-start gap-3 border-t border-slate-100 pt-3">
         <input
           type="checkbox"
           checked={onlyAvailable}
@@ -274,33 +334,86 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
       >
         <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
         ตัวกรอง
-        {activeFilterCount > 0 && (
-          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-700">
-            {activeFilterCount}
-          </span>
-        )}
       </button>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+      <div className="grid items-start gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-7">
         <aside
           id="product-filters"
-          className={`${filtersOpen ? "block" : "hidden"} rounded-xl border border-slate-200 bg-white p-4 lg:sticky lg:top-24 lg:block lg:rounded-none lg:border-0 lg:border-r lg:border-slate-100 lg:bg-transparent lg:p-0 lg:pr-6`}
+          className={`${filtersOpen ? "block" : "hidden"} rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm lg:sticky lg:top-24 lg:block`}
         >
           {sidebar}
         </aside>
 
         <div className="min-w-0">
-          <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="mb-5 flex flex-col gap-3 px-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-0">
             <p className="text-sm text-slate-500" aria-live="polite">
               พบ <span className="font-semibold text-slate-800">{filteredProducts.length}</span>{" "}
               รายการ
             </p>
+
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <label className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="whitespace-nowrap">เรียงตาม:</span>
+                <select
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value as CatalogSort)}
+                  aria-label="เรียงลำดับสินค้า"
+                  className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="rating-desc">คะแนนสูงสุด</option>
+                  <option value="newest">ใหม่ล่าสุด</option>
+                  <option value="price-asc">ราคาต่ำสุด</option>
+                  <option value="price-desc">ราคาสูงสุด</option>
+                </select>
+              </label>
+
+              <div
+                className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+                role="group"
+                aria-label="รูปแบบการแสดงสินค้า"
+              >
+                <button
+                  type="button"
+                  onClick={() => setLayout("grid")}
+                  aria-label="แสดงแบบตาราง"
+                  aria-pressed={layout === "grid"}
+                  title="แสดงแบบตาราง"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                    layout === "grid"
+                      ? "bg-slate-100 text-[#1b3554]"
+                      : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                  }`}
+                >
+                  <Grid2X2 aria-hidden="true" className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLayout("list")}
+                  aria-label="แสดงแบบรายการ"
+                  aria-pressed={layout === "list"}
+                  title="แสดงแบบรายการ"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                    layout === "list"
+                      ? "bg-slate-100 text-[#1b3554]"
+                      : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                  }`}
+                >
+                  <List aria-hidden="true" className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} listing={product} />
+          {sortedProducts.length > 0 ? (
+            <div
+              className={
+                layout === "grid"
+                  ? "grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 xl:gap-6"
+                  : "grid gap-4"
+              }
+            >
+              {sortedProducts.map((product) => (
+                <ProductCard key={product.id} listing={product} layout={layout} />
               ))}
             </div>
           ) : (

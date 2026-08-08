@@ -17,6 +17,7 @@ export const mockItemCategories: ItemCategoryRow[] = [
   { category_id: 5, category_name: "อุปกรณ์ไลฟ์และสตูดิโอ" },
   { category_id: 6, category_name: "เดินทาง" },
   { category_id: 7, category_name: "กีฬา" },
+  { category_id: 8, category_name: "อื่นๆ" },
 ];
 
 // Mock table: Item
@@ -263,6 +264,10 @@ export const mockProducts: Product[] = mockItems.map(mapItemToProduct);
 
 export function getMockProducts(): Product[] {
   return mockProducts;
+}
+
+export function getMockItemCategories(): ItemCategoryRow[] {
+  return mockItemCategories;
 }
 
 export function getMockProductById(id: string): Product | undefined {
