@@ -1,62 +1,100 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { registerSchema } from "@/lib/validations/register";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
-  const { username,password, nationalId, role } = await request.json();
+  try {
+    const body = await request.json();
 
+    // 1. Validate payload with Zod
+    const validation = registerSchema.safeParse(body);
+    if (!validation.success) {
+      const firstError =
+        validation.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง";
+      return NextResponse.json({ message: firstError }, { status: 400 });
+    }
 
-  // role กำหนดว่าจะเช็ค/insert ที่ table ไหน
-  const tableName = role === "renter" ? "renters" : "lenders";
+    const { username, password, nationalId, role } = validation.data;
+    const admin = createAdminClient();
 
-  // 1. เช็ค username ซ้ำ - ต้องเช็คทั้ง 2 table เพราะ username ห้ามซ้ำข้าม role
-  const [renterUsername, lenderUsername] = await Promise.all([
-    supabase.from("renters").select("id").eq("username", username).maybeSingle(),
-    supabase.from("lenders").select("id").eq("username", username).maybeSingle(),
-  ]);
+    // 2. Check if username or national_id already exists in useraccount
+    const { data: existingUser, error: checkError } = await admin
+      .from("useraccount")
+      .select("username, national_id")
+      .or(`username.eq.${username},national_id.eq.${nationalId}`)
+      .maybeSingle();
 
-  if (renterUsername.data || lenderUsername.data) {
+    if (checkError) {
+      console.error("Error checking existing user:", checkError);
+      return NextResponse.json(
+        { message: "เกิดข้อผิดพลาดในการตรวจสอบข้อมูล" },
+        { status: 500 }
+      );
+    }
+
+    if (existingUser) {
+      if (existingUser.username === username) {
+        return NextResponse.json(
+          { message: "ชื่อผู้ใช้นี้ถูกใช้งานแล้ว" },
+          { status: 409 }
+        );
+      }
+      if (existingUser.national_id === nationalId) {
+        return NextResponse.json(
+          { message: "เลขบัตรประชาชนนี้ถูกใช้งานแล้ว" },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 3. Derive deterministic email identifier for Supabase Auth
+    const email = `${username.toLowerCase().trim()}@chaochao.local`;
+
+    // 4. Create user in Supabase Auth (Triggers handle_new_auth_user in DB automatically)
+    const { data: authData, error: authError } =
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          username,
+          signup_role: role,
+          role,
+          national_id: nationalId,
+        },
+      });
+
+    if (authError || !authData.user) {
+      console.error("Error creating auth user:", authError);
+      return NextResponse.json(
+        { message: authError?.message || "ไม่สามารถสร้างบัญชีผู้ใช้ได้" },
+        { status: 400 }
+      );
+    }
+
+    const userId = authData.user.id;
+
+    // 5. Update national_id and active status in public.useraccount
+    await admin
+      .from("useraccount")
+      .update({
+        national_id: nationalId,
+        status: "Active",
+      })
+      .eq("user_id", userId);
+
     return NextResponse.json(
-      { message: "username นี้ถูกใช้ไปแล้ว" },
-      { status: 409 }
+      {
+        message: "สมัครสมาชิกสำเร็จ",
+        user: { id: userId, username, role },
+      },
+      { status: 201 }
     );
-  }
-
-  // 2. เช็ค nationalId ซ้ำ - เช็คแค่ table ตาม role ที่เลือก (nationalId ซ้ำข้าม role ได้)
-  const { data: existingNationalId } = await supabase
-    .from(tableName)
-    .select("id")
-    .eq("national_id", nationalId)
-    .maybeSingle();
-
-  if (existingNationalId) {
+  } catch (error) {
+    console.error("Registration error:", error);
     return NextResponse.json(
-      { message: "เลขบัตรประชาชนนี้สมัครในฐานะนี้ไปแล้ว" },
-      { status: 409 }
-    );
-  }
-
-  // 3. ผ่านการเช็คทั้งหมดแล้ว - insert ข้อมูลลง table ตาม role
-  const { data: newUser, error: insertError } = await supabase
-    .from(tableName)
-    .insert({
-      username,
-      password,
-      national_id: nationalId,
-    })
-    .select("id, username")
-    .single();
-
-  if (insertError) {
-    return NextResponse.json(
-      { message: "สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" },
+      { message: "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์" },
       { status: 500 }
     );
   }
-
-  return NextResponse.json(
-    { message: "สมัครสมาชิกสำเร็จ", user: newUser },
-    { status: 201 }
-  );
-
-  
 }

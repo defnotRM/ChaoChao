@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, AlertCircle, AlertTriangle } from "lucide-react";
 import {
   loginSchema,
   roleLabels,
@@ -11,7 +12,10 @@ import {
 } from "@/lib/validations/login";
 
 export default function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
@@ -25,6 +29,7 @@ export default function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    setServerError(null);
     try {
       const res = await fetch("/api/login", {
         method: "POST",
@@ -37,18 +42,19 @@ export default function LoginForm() {
       const result = await res.json();
 
       if (!res.ok) {
-        alert(result.message);
+        setServerError(result.message ?? "เข้าสู่ระบบไม่สำเร็จ");
         return;
       }
 
-      alert(
-        `เข้าสู่ระบบสำเร็จ: ${result.user.username} (${roleLabels[result.user.role as keyof typeof roleLabels]})`
-      );
-
-      console.log("Logged in user:", result.user);
+      const redirectPath = searchParams.get("redirect") || result.redirectTo || "/";
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth-state-change"));
+      }
+      router.push(redirectPath);
+      router.refresh();
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+      setServerError("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
     }
   };
 
@@ -102,6 +108,16 @@ export default function LoginForm() {
               </p>
             </div>
           </div>
+
+          {/* Server Error Banner */}
+          {serverError && (
+            <div className="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+              <p className="text-sm font-medium text-red-600">
+                {serverError}
+              </p>
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit(onSubmit)}
