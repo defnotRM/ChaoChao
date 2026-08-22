@@ -19,8 +19,7 @@ export const registerSchema = z.object({
     .length(13, "เลขบัตรประชาชนต้องมี 13 หลัก")
     .regex(/^\d+$/, "เลขบัตรประชาชนต้องเป็นตัวเลขเท่านั้น"),
 
-  // เพิ่มใหม่: เลือกได้แค่ "lender" หรือ "renter" เท่านั้น
-  role: z.enum(["lender", "renter"], {
+  role: z.enum(["lender", "renter", "both"], {
     message: "กรุณาเลือกประเภทผู้ใช้งาน",
   }),
 });
@@ -31,4 +30,5 @@ export type RegisterFormData = z.infer<typeof registerSchema>;
 export const roleLabels: Record<RegisterFormData["role"], string> = {
   renter: "ผู้เช่า",
   lender: "ผู้ให้เช่า",
+  both: "ทั้งผู้เช่าและผู้ให้เช่า",
 };

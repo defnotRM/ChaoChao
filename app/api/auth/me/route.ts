@@ -17,7 +17,7 @@ export async function GET() {
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("useraccount")
-      .select("username, email, status")
+      .select("username, email, avatar_url, status")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -39,6 +39,10 @@ export async function GET() {
         ? "renter"
         : user.user_metadata?.role || "renter";
 
+    const avatarUrl = profile?.avatar_url
+      ? `/api/avatar?id=${user.id}`
+      : null;
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -47,6 +51,7 @@ export async function GET() {
           user.user_metadata?.username ||
           user.email?.split("@")[0] ||
           "ผู้ใช้งาน",
+        avatarUrl,
         role,
         roles,
       },

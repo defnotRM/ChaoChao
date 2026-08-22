@@ -255,7 +255,7 @@ export default function RegisterForm() {
                   </div>
                 </label>
                 
-                <label className="relative cursor-pointer">
+                <label className="relative col-span-2 cursor-pointer">
                   <input
                     type="radio"
                     value="both"

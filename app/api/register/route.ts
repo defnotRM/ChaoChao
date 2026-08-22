@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     // 3. Derive deterministic email identifier for Supabase Auth
     const email = `${username.toLowerCase().trim()}@chaochao.local`;
 
-    // 4. Create user in Supabase Auth (Triggers handle_new_auth_user in DB automatically)
+    // 4. Create user in Supabase Auth
     const { data: authData, error: authError } =
       await admin.auth.admin.createUser({
         email,
@@ -82,6 +82,28 @@ export async function POST(request: Request) {
         status: "Active",
       })
       .eq("user_id", userId);
+
+    // 6. Assign roles in public.user_role_assignment
+    const rolesToAssign =
+      role === "both" ? ["renter", "lender"] : [role];
+
+    const { data: roleRows, error: roleFetchErr } = await admin
+      .from("role")
+      .select("role_id, role_type")
+      .in("role_type", rolesToAssign);
+
+    if (roleFetchErr) {
+      console.error("Error fetching roles:", roleFetchErr);
+    } else if (roleRows && roleRows.length > 0) {
+      for (const r of roleRows) {
+        await admin
+          .from("user_role_assignment")
+          .upsert(
+            { user_id: userId, role_id: r.role_id },
+            { onConflict: "user_id,role_id" }
+          );
+      }
+    }
 
     return NextResponse.json(
       {
