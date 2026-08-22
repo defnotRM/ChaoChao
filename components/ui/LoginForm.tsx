@@ -47,6 +47,9 @@ export default function LoginForm() {
       }
 
       const redirectPath = searchParams.get("redirect") || result.redirectTo || "/";
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth-state-change"));
+      }
       router.push(redirectPath);
       router.refresh();
     } catch (error) {

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import {
   Heart,
   Menu,
@@ -71,50 +71,57 @@ function SearchBar({ mobile = false }: { mobile?: boolean }) {
 
 export default function Navbarver2() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<{ username: string; role?: string } | null>(
     null
   );
 
-  useEffect(() => {
-    const supabase = createBrowserClient();
-
-    // Check initial user session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUser({
-          username:
-            user.user_metadata?.username ||
-            user.email?.split("@")[0] ||
-            "ผู้ใช้งาน",
-          role: user.user_metadata?.role,
-        });
-      } else {
-        setUser(null);
+  const fetchAuthUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me", {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          return;
+        }
       }
-    });
+      setUser(null);
+    } catch {
+      setUser(null);
+    }
+  }, []);
 
-    // Listen to auth changes
+  useEffect(() => {
+    // 1. Fetch user from server endpoint
+    fetchAuthUser();
+
+    // 2. Listen to custom auth events
+    const handleAuthChange = () => {
+      fetchAuthUser();
+    };
+
+    window.addEventListener("auth-state-change", handleAuthChange);
+    window.addEventListener("focus", handleAuthChange);
+
+    // 3. Supabase browser client auth listener
+    const supabase = createBrowserClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({
-          username:
-            session.user.user_metadata?.username ||
-            session.user.email?.split("@")[0] ||
-            "ผู้ใช้งาน",
-          role: session.user.user_metadata?.role,
-        });
-      } else {
-        setUser(null);
-      }
+    } = supabase.auth.onAuthStateChange(() => {
+      fetchAuthUser();
     });
 
     return () => {
+      window.removeEventListener("auth-state-change", handleAuthChange);
+      window.removeEventListener("focus", handleAuthChange);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchAuthUser, pathname]);
 
   const handleLogout = async () => {
     try {
@@ -122,6 +129,7 @@ export default function Navbarver2() {
       const supabase = createBrowserClient();
       await supabase.auth.signOut();
       setUser(null);
+      window.dispatchEvent(new Event("auth-state-change"));
       router.push("/login");
       router.refresh();
     } catch (error) {
@@ -136,7 +144,7 @@ export default function Navbarver2() {
       ? "/admin"
       : "/renter/mydashboard";
 
-  const userInitial = user?.username ? user.username[0].toUpperCase() : null;
+  const userInitial = user?.username ? user.username[0].toUpperCase() : "U";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
@@ -146,26 +154,27 @@ export default function Navbarver2() {
         <SearchBar />
 
         {/* เมนูด้านขวาของ Laptop/Desktop */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-3">
           <Link
-            href="/login"
+            href={user ? "/renter/favorites" : "/login"}
             aria-label="รายการโปรด"
             className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
           >
             <Heart aria-hidden="true" className="h-6 w-6" />
           </Link>
           <Link
-            href="/login"
+            href={user ? "/chat" : "/login"}
             aria-label="ข้อความ"
             className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
           >
             <MessageCircle aria-hidden="true" className="h-6 w-6" />
           </Link>
-          <span aria-hidden="true" className="mx-2 h-7 w-px bg-slate-200" />
+          <span aria-hidden="true" className="mx-1 h-7 w-px bg-slate-200" />
 
           {user ? (
+            /* เมื่อผู้ใช้เข้าสู่ระบบ (Logged In) */
             <>
-              {/* แดชบอร์ด */}
+              {/* ปุ่มแดชบอร์ด */}
               <Link
                 href={dashboardLink}
                 className="flex items-center gap-1.5 rounded-xl bg-[#c0e6fd]/30 px-3.5 py-2 text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/60"
@@ -174,16 +183,29 @@ export default function Navbarver2() {
                 <span>แดชบอร์ด</span>
               </Link>
 
-              {/* ออกจากระบบ */}
+              {/* ปุ่มโปรไฟล์วงกลมพร้อมชื่อผู้ใช้ */}
+              <Link
+                href="/profile"
+                title="แก้ไขโปรไฟล์"
+                className="flex items-center gap-2 rounded-full bg-slate-100/90 py-1 pl-1 pr-3.5 text-sm font-semibold text-[#000f22] ring-1 ring-slate-200/80 transition hover:bg-sky-50 hover:text-[#1b3554] hover:ring-[#3f6593]/40 focus-visible:outline-2 focus-visible:outline-sky-600"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]">
+                  {userInitial}
+                </div>
+                <span className="max-w-[120px] truncate">{user.username}</span>
+              </Link>
+
+              {/* ปุ่มออกจากระบบ (อยู่ข้างปุ่มโปรไฟล์) */}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                className="flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" />
                 <span>ออกจากระบบ</span>
               </button>
             </>
           ) : (
+            /* เมื่อผู้ใช้ยังไม่ได้เข้าสู่ระบบ (Logged Out) */
             <>
               <Link
                 href="/login"
@@ -199,20 +221,6 @@ export default function Navbarver2() {
               </Link>
             </>
           )}
-
-          {/* Circular User Profile Button (อยู่ข้างปุ่มสมัครสมาชิก / Actions เสมอ) */}
-          <Link
-            href="/profile"
-            aria-label="โปรไฟล์ผู้ใช้งาน"
-            title={user ? `โปรไฟล์ (${user.username})` : "โปรไฟล์ผู้ใช้งาน"}
-            className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-md shadow-[#1b3554]/20 ring-2 ring-[#c0e6fd] transition hover:scale-105 hover:ring-[#1b3554] hover:shadow-lg focus-visible:outline-2 focus-visible:outline-sky-600"
-          >
-            {userInitial ? (
-              <span>{userInitial}</span>
-            ) : (
-              <UserIcon className="h-5 w-5 text-white" />
-            )}
-          </Link>
         </div>
       </nav>
 
@@ -220,7 +228,7 @@ export default function Navbarver2() {
       <div className="lg:hidden">
         {/* แถวบนของ Tablet/Mobile */}
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
-          {/* Hamburger: ปุ่มเปิดและปิดเมนู Tablet/Mobile */}
+          {/* Hamburger */}
           <button
             type="button"
             onClick={() => setIsOpen((current) => !current)}
@@ -239,26 +247,28 @@ export default function Navbarver2() {
 
           <div className="ml-auto flex items-center gap-2">
             <Link
-              href="/login"
+              href={user ? "/chat" : "/login"}
               className="flex h-10 w-10 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
             >
               <MessageCircle aria-hidden="true" className="h-6 w-6" />
             </Link>
             <Link
-              href="/login"
+              href={user ? "/renter/favorites" : "/login"}
               className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
             >
               <Heart aria-hidden="true" className="h-6 w-6" />
             </Link>
 
-            {/* Circular Profile Button for Mobile Top Bar */}
-            <Link
-              href="/profile"
-              aria-label="โปรไฟล์ผู้ใช้งาน"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]"
-            >
-              {userInitial ? userInitial : <UserIcon className="h-4 w-4 text-white" />}
-            </Link>
+            {/* Circular Profile Button for Mobile Top Bar (เฉพาะเมื่อ Logged In) */}
+            {user && (
+              <Link
+                href="/profile"
+                aria-label="โปรไฟล์ผู้ใช้งาน"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]"
+              >
+                {userInitial}
+              </Link>
+            )}
           </div>
         </div>
 
@@ -289,58 +299,64 @@ export default function Navbarver2() {
                 ค้นหาอุปกรณ์
               </Link>
 
-              {/* Mobile Profile Link */}
-              <Link
-                href="/profile"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-4 py-2.5 text-sm font-medium text-white shadow-sm"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-[#1b3554]">
-                  {userInitial ? userInitial : <UserIcon className="h-3.5 w-3.5" />}
-                </div>
-                <span>แก้ไขโปรไฟล์ {user ? `(${user.username})` : ""}</span>
-              </Link>
-
-              <div className="my-1 h-px bg-slate-200" />
-
               {user ? (
-                <div className="grid grid-cols-2 gap-2">
+                /* เมื่อเข้าสู่ระบบใน Mobile */
+                <>
                   <Link
-                    href={dashboardLink}
+                    href="/profile"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center gap-1.5 rounded-xl bg-[#c0e6fd]/30 px-4 py-2.5 text-center text-sm font-medium text-[#1b3554]"
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-4 py-2.5 text-sm font-medium text-white shadow-sm"
                   >
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>แดชบอร์ด</span>
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-[#1b3554]">
+                      {userInitial}
+                    </div>
+                    <span>แก้ไขโปรไฟล์ ({user.username})</span>
                   </Link>
-                  <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex items-center justify-center gap-1 rounded-xl border border-red-200 px-4 py-2.5 text-center text-sm font-medium text-red-600"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>ออกจากระบบ</span>
-                  </button>
-                </div>
+
+                  <div className="my-1 h-px bg-slate-200" />
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href={dashboardLink}
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center justify-center gap-1.5 rounded-xl bg-[#c0e6fd]/30 px-4 py-2.5 text-center text-sm font-medium text-[#1b3554]"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>แดชบอร์ด</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex items-center justify-center gap-1 rounded-xl border border-red-200 px-4 py-2.5 text-center text-sm font-medium text-red-600"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>ออกจากระบบ</span>
+                    </button>
+                  </div>
+                </>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <Link
-                    href="/login"
-                    onClick={() => setIsOpen(false)}
-                    className="rounded-xl px-4 py-2.5 text-center text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/30"
-                  >
-                    เข้าสู่ระบบ
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setIsOpen(false)}
-                    className="rounded-xl bg-gradient-to-r from-[#3f6593] to-[#1b3554] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-[#1b3554]/20 transition hover:from-[#1b3554] hover:to-[#000f22]"
-                  >
-                    สมัครสมาชิก
-                  </Link>
-                </div>
+                /* เมื่อยังไม่ได้เข้าสู่ระบบใน Mobile */
+                <>
+                  <div className="my-1 h-px bg-slate-200" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href="/login"
+                      onClick={() => setIsOpen(false)}
+                      className="rounded-xl px-4 py-2.5 text-center text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/30"
+                    >
+                      เข้าสู่ระบบ
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setIsOpen(false)}
+                      className="rounded-xl bg-gradient-to-r from-[#3f6593] to-[#1b3554] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-[#1b3554]/20 transition hover:from-[#1b3554] hover:to-[#000f22]"
+                    >
+                      สมัครสมาชิก
+                    </Link>
+                  </div>
+                </>
               )}
             </div>
           </div>
