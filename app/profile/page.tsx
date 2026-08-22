@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Shield,
   ArrowLeft,
+  Camera,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,10 +23,12 @@ export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
@@ -45,6 +50,7 @@ export default function ProfilePage() {
         if (res.ok && data.user) {
           setUsername(data.user.username || "");
           setBio(data.user.bio || "");
+          setAvatarUrl(data.user.avatarUrl || "");
           setRoles(data.user.roles || []);
           setStatus(data.user.status || "Active");
         } else {
@@ -60,6 +66,91 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [router]);
+
+  const handleAvatarFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setErrorMsg("กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (JPG, PNG, WEBP, GIF)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("ขนาดไฟล์ต้องไม่เกิน 5 MB");
+      return;
+    }
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setUploadingAvatar(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(result.message || "อัปโหลดรูปภาพไม่สำเร็จ");
+        return;
+      }
+
+      setAvatarUrl(result.avatarUrl);
+      setSuccessMsg("อัปโหลดรูปภาพโปรไฟล์สำเร็จ!");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth-state-change"));
+      }
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setUploadingAvatar(true);
+
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          bio,
+          avatarUrl: "",
+        }),
+      });
+
+      if (res.ok) {
+        setAvatarUrl("");
+        setSuccessMsg("ลบรูปโปรไฟล์เรียบร้อยแล้ว");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth-state-change"));
+        }
+        router.refresh();
+      } else {
+        const result = await res.json();
+        setErrorMsg(result.message || "ไม่สามารถลบรูปโปรไฟล์ได้");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("เกิดข้อผิดพลาดในการลบรูปภาพ");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +201,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           username: username.trim(),
           bio: bio.trim(),
+          avatarUrl: avatarUrl || undefined,
           password: newPassword ? newPassword.trim() : undefined,
         }),
       });
@@ -124,6 +216,9 @@ export default function ProfilePage() {
       setSuccessMsg("บันทึกข้อมูลโปรไฟล์เรียบร้อยแล้ว!");
       setNewPassword("");
       setConfirmPassword("");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("auth-state-change"));
+      }
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -169,9 +264,67 @@ export default function ProfilePage() {
         {/* Header Profile Card */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#000f22] via-[#1b3554] to-[#3f6593] p-8 text-white shadow-xl shadow-[#1b3554]/10">
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-            {/* Circular Avatar */}
-            <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#3f6593] to-[#c0e6fd] text-4xl font-bold text-[#000f22] ring-4 ring-white/30 shadow-inner">
-              {initialLetter}
+            {/* Circular Avatar with Image Upload */}
+            <div className="relative group shrink-0">
+              <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-tr from-[#3f6593] to-[#c0e6fd] text-4xl font-bold text-[#000f22] ring-4 ring-white/40 shadow-inner overflow-hidden">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={username || "User Avatar"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{initialLetter}</span>
+                )}
+
+                {/* Upload Overlay on Hover / Active */}
+                <label
+                  htmlFor="avatar-file-input"
+                  className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 cursor-pointer backdrop-blur-[2px]"
+                  title="คลิกเพื่อเปลี่ยนรูปโปรไฟล์"
+                >
+                  {uploadingAvatar ? (
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <>
+                      <Camera className="h-6 w-6" />
+                      <span className="text-[10px] font-medium mt-1">เปลี่ยนรูป</span>
+                    </>
+                  )}
+                </label>
+              </div>
+
+              {/* Action Buttons under avatar on mobile/desktop */}
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <label
+                  htmlFor="avatar-file-input"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-white/20 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md transition hover:bg-white/30"
+                >
+                  <Upload className="h-3 w-3" />
+                  <span>อัปโหลด</span>
+                </label>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={uploadingAvatar}
+                    className="inline-flex items-center gap-1 rounded-lg bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-200 backdrop-blur-md transition hover:bg-red-500/30"
+                    title="ลบรูปโปรไฟล์"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>ลบ</span>
+                  </button>
+                )}
+              </div>
+
+              <input
+                id="avatar-file-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleAvatarFileChange}
+                disabled={uploadingAvatar}
+                className="hidden"
+              />
             </div>
 
             <div className="text-center sm:text-left">
@@ -179,7 +332,7 @@ export default function ProfilePage() {
                 {username || "ผู้ใช้งาน"}
               </h1>
               <p className="mt-1 text-sm text-[#c0e6fd]">
-                จัดการข้อมูลส่วนตัวและรหัสผ่านของคุณ
+                จัดการข้อมูลส่วนตัว รูปโปรไฟล์ และรหัสผ่านของคุณ
               </p>
 
               {/* Roles Badge */}

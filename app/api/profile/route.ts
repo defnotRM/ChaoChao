@@ -13,6 +13,7 @@ const updateProfileSchema = z.object({
       "ชื่อผู้ใช้ใช้ได้เฉพาะตัวอักษร a-z, A-Z, 0-9 และ _"
     ),
   bio: z.string().max(500, "ประวัติย่อต้องไม่เกิน 500 ตัวอักษร").optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
   password: z
     .string()
     .min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร")
@@ -42,7 +43,7 @@ export async function GET() {
 
     const { data: profile, error: profileError } = await admin
       .from("useraccount")
-      .select("user_id, username, email, national_id, bio, status, created_at")
+      .select("user_id, username, email, national_id, bio, avatar_url, status, created_at")
       .eq("user_id", user.id)
       .single();
 
@@ -62,6 +63,10 @@ export async function GET() {
       .map((item: any) => item.role?.role_type)
       .filter(Boolean);
 
+    const avatarUrl = profile.avatar_url
+      ? `/api/avatar?id=${user.id}`
+      : "";
+
     return NextResponse.json({
       user: {
         id: profile.user_id,
@@ -69,6 +74,7 @@ export async function GET() {
         email: profile.email,
         nationalId: profile.national_id,
         bio: profile.bio ?? "",
+        avatarUrl,
         status: profile.status,
         roles,
         createdAt: profile.created_at,
@@ -107,7 +113,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: firstError }, { status: 400 });
     }
 
-    const { username, bio, password } = validation.data;
+    const { username, bio, avatarUrl, password } = validation.data;
     const admin = createAdminClient();
 
     // 1. Check if new username is already taken by another user
@@ -125,14 +131,19 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // 2. Update useraccount (username & bio)
+    // 2. Update useraccount (username & bio & avatar_url)
+    const updateData: Record<string, any> = {
+      username,
+      bio: bio ?? "",
+      updated_at: new Date().toISOString(),
+    };
+    if (avatarUrl === "") {
+      updateData.avatar_url = null;
+    }
+
     const { error: updateError } = await admin
       .from("useraccount")
-      .update({
-        username,
-        bio: bio ?? "",
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("user_id", user.id);
 
     if (updateError) {
@@ -143,14 +154,14 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // 3. Update auth.users metadata
+    // 3. Update auth.users metadata (keep avatar_url short)
     const userMetadata = {
       ...(user.user_metadata || {}),
       username,
+      avatar_url: avatarUrl === "" ? null : (avatarUrl ? `/api/avatar?id=${user.id}` : user.user_metadata?.avatar_url),
     };
 
     if (password && password.trim().length >= 8) {
-      // Update password and metadata
       const { error: passError } = await admin.auth.admin.updateUserById(
         user.id,
         {
@@ -167,7 +178,6 @@ export async function PATCH(request: Request) {
         );
       }
     } else {
-      // Update metadata only
       await admin.auth.admin.updateUserById(user.id, {
         user_metadata: userMetadata,
       });
@@ -179,6 +189,7 @@ export async function PATCH(request: Request) {
         id: user.id,
         username,
         bio: bio ?? "",
+        avatarUrl: avatarUrl === "" ? "" : `/api/avatar?id=${user.id}`,
       },
     });
   } catch (error) {

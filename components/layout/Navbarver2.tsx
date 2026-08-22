@@ -69,19 +69,24 @@ function SearchBar({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
+interface AuthUser {
+  id?: string;
+  username: string;
+  role?: string;
+  avatarUrl?: string | null;
+}
+
 export default function Navbarver2() {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<{ username: string; role?: string } | null>(
-    null
-  );
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   const fetchAuthUser = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me", {
         cache: "no-store",
-        headers: { "Pragma": "no-cache" },
+        headers: { Pragma: "no-cache" },
       });
       if (res.ok) {
         const data = await res.json();
@@ -183,14 +188,22 @@ export default function Navbarver2() {
                 <span>แดชบอร์ด</span>
               </Link>
 
-              {/* ปุ่มโปรไฟล์วงกลมพร้อมชื่อผู้ใช้ */}
+              {/* ปุ่มโปรไฟล์วงกลมพร้อมรูปโปรไฟล์และชื่อผู้ใช้ */}
               <Link
                 href="/profile"
                 title="แก้ไขโปรไฟล์"
                 className="flex items-center gap-2 rounded-full bg-slate-100/90 py-1 pl-1 pr-3.5 text-sm font-semibold text-[#000f22] ring-1 ring-slate-200/80 transition hover:bg-sky-50 hover:text-[#1b3554] hover:ring-[#3f6593]/40 focus-visible:outline-2 focus-visible:outline-sky-600"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]">
-                  {userInitial}
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]">
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.username}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{userInitial}</span>
+                  )}
                 </div>
                 <span className="max-w-[120px] truncate">{user.username}</span>
               </Link>
@@ -264,9 +277,17 @@ export default function Navbarver2() {
               <Link
                 href="/profile"
                 aria-label="โปรไฟล์ผู้ใช้งาน"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]"
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]"
               >
-                {userInitial}
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.username}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{userInitial}</span>
+                )}
               </Link>
             )}
           </div>
@@ -305,10 +326,18 @@ export default function Navbarver2() {
                   <Link
                     href="/profile"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-4 py-2.5 text-sm font-medium text-white shadow-sm"
+                    className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-4 py-2.5 text-sm font-medium text-white shadow-sm"
                   >
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-[#1b3554]">
-                      {userInitial}
+                    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold text-[#1b3554] ring-2 ring-white/40">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt={user.username}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span>{userInitial}</span>
+                      )}
                     </div>
                     <span>แก้ไขโปรไฟล์ ({user.username})</span>
                   </Link>
