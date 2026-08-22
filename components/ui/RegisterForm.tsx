@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/lib/validations/register";
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -47,7 +49,8 @@ export default function RegisterForm() {
         return;
       }
 
-      alert(`ผ่านการตรวจสอบ: ${data.username} (${roleLabels[data.role]})`);
+      alert("สมัครสมาชิกสำเร็จ! กำลังนำท่านไปยังหน้าเข้าสู่ระบบ");
+      router.push("/login");
     } catch (error) {
       console.error(error);
       setServerError("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");

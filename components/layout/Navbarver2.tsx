@@ -1,8 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Heart, Menu, MessageCircle, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  Heart,
+  Menu,
+  MessageCircle,
+  Search,
+  X,
+  User as UserIcon,
+  LogOut,
+  LayoutDashboard,
+} from "lucide-react";
+import { createBrowserClient } from "@/lib/supabase/client";
 
 function Brand() {
   return (
@@ -59,7 +70,73 @@ function SearchBar({ mobile = false }: { mobile?: boolean }) {
 }
 
 export default function Navbarver2() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<{ username: string; role?: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    const supabase = createBrowserClient();
+
+    // Check initial user session
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUser({
+          username:
+            user.user_metadata?.username ||
+            user.email?.split("@")[0] ||
+            "ผู้ใช้งาน",
+          role: user.user_metadata?.role,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    // Listen to auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          username:
+            session.user.user_metadata?.username ||
+            session.user.email?.split("@")[0] ||
+            "ผู้ใช้งาน",
+          role: session.user.user_metadata?.role,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+      const supabase = createBrowserClient();
+      await supabase.auth.signOut();
+      setUser(null);
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const dashboardLink =
+    user?.role === "lender"
+      ? "/lender/mydashboard"
+      : user?.role === "admin"
+      ? "/admin"
+      : "/renter/mydashboard";
+
+  const userInitial = user?.username ? user.username[0].toUpperCase() : null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
@@ -69,7 +146,7 @@ export default function Navbarver2() {
         <SearchBar />
 
         {/* เมนูด้านขวาของ Laptop/Desktop */}
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/login"
             aria-label="รายการโปรด"
@@ -85,17 +162,56 @@ export default function Navbarver2() {
             <MessageCircle aria-hidden="true" className="h-6 w-6" />
           </Link>
           <span aria-hidden="true" className="mx-2 h-7 w-px bg-slate-200" />
+
+          {user ? (
+            <>
+              {/* แดชบอร์ด */}
+              <Link
+                href={dashboardLink}
+                className="flex items-center gap-1.5 rounded-xl bg-[#c0e6fd]/30 px-3.5 py-2 text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/60"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span>แดชบอร์ด</span>
+              </Link>
+
+              {/* ออกจากระบบ */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>ออกจากระบบ</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/30 focus-visible:outline-2 focus-visible:outline-sky-600"
+              >
+                เข้าสู่ระบบ
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-xl bg-gradient-to-r from-[#3f6593] to-[#1b3554] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#1b3554]/20 transition hover:from-[#1b3554] hover:to-[#000f22] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+              >
+                สมัครสมาชิก
+              </Link>
+            </>
+          )}
+
+          {/* Circular User Profile Button (อยู่ข้างปุ่มสมัครสมาชิก / Actions เสมอ) */}
           <Link
-            href="/login"
-            className="rounded-xl px-4 py-2 text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/30 focus-visible:outline-2 focus-visible:outline-sky-600"
+            href="/profile"
+            aria-label="โปรไฟล์ผู้ใช้งาน"
+            title={user ? `โปรไฟล์ (${user.username})` : "โปรไฟล์ผู้ใช้งาน"}
+            className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-md shadow-[#1b3554]/20 ring-2 ring-[#c0e6fd] transition hover:scale-105 hover:ring-[#1b3554] hover:shadow-lg focus-visible:outline-2 focus-visible:outline-sky-600"
           >
-            เข้าสู่ระบบ
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-xl bg-gradient-to-r from-[#3f6593] to-[#1b3554] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#1b3554]/20 transition hover:from-[#1b3554] hover:to-[#000f22] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
-          >
-            สมัครสมาชิก
+            {userInitial ? (
+              <span>{userInitial}</span>
+            ) : (
+              <UserIcon className="h-5 w-5 text-white" />
+            )}
           </Link>
         </div>
       </nav>
@@ -120,6 +236,7 @@ export default function Navbarver2() {
           </button>
 
           <Brand />
+
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/login"
@@ -132,6 +249,15 @@ export default function Navbarver2() {
               className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
             >
               <Heart aria-hidden="true" className="h-6 w-6" />
+            </Link>
+
+            {/* Circular Profile Button for Mobile Top Bar */}
+            <Link
+              href="/profile"
+              aria-label="โปรไฟล์ผู้ใช้งาน"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white shadow-sm ring-2 ring-[#c0e6fd]"
+            >
+              {userInitial ? userInitial : <UserIcon className="h-4 w-4 text-white" />}
             </Link>
           </div>
         </div>
@@ -162,23 +288,60 @@ export default function Navbarver2() {
               >
                 ค้นหาอุปกรณ์
               </Link>
+
+              {/* Mobile Profile Link */}
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-4 py-2.5 text-sm font-medium text-white shadow-sm"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-[#1b3554]">
+                  {userInitial ? userInitial : <UserIcon className="h-3.5 w-3.5" />}
+                </div>
+                <span>แก้ไขโปรไฟล์ {user ? `(${user.username})` : ""}</span>
+              </Link>
+
               <div className="my-1 h-px bg-slate-200" />
-              <div className="grid grid-cols-2 gap-2">
-                <Link
-                  href="/login"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-xl px-4 py-2.5 text-center text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/30"
-                >
-                  เข้าสู่ระบบ
-                </Link>
-                <Link
-                  href="/register"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-xl bg-gradient-to-r from-[#3f6593] to-[#1b3554] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-[#1b3554]/20 transition hover:from-[#1b3554] hover:to-[#000f22]"
-                >
-                  สมัครสมาชิก
-                </Link>
-              </div>
+
+              {user ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={dashboardLink}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-[#c0e6fd]/30 px-4 py-2.5 text-center text-sm font-medium text-[#1b3554]"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>แดชบอร์ด</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center justify-center gap-1 rounded-xl border border-red-200 px-4 py-2.5 text-center text-sm font-medium text-red-600"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>ออกจากระบบ</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-xl px-4 py-2.5 text-center text-sm font-medium text-[#1b3554] transition hover:bg-[#c0e6fd]/30"
+                  >
+                    เข้าสู่ระบบ
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-xl bg-gradient-to-r from-[#3f6593] to-[#1b3554] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-[#1b3554]/20 transition hover:from-[#1b3554] hover:to-[#000f22]"
+                  >
+                    สมัครสมาชิก
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -1,40 +1,109 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { loginSchema } from "@/lib/validations/login";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const { username, password, role } = await request.json();
+  try {
+    const body = await request.json();
 
-  const tableName = role === "renter" ? "renters" : "lenders";
+    // 1. Validate inputs
+    const validation = loginSchema.safeParse(body);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message ?? "ข้อมูลไม่ถูกต้อง";
+      return NextResponse.json({ message: firstError }, { status: 400 });
+    }
 
-  // หา user จาก username ใน table ตาม role ที่เลือก
-  const { data: user, error } = await supabase
-    .from(tableName)
-    .select("id, username, password")
-    .eq("username", username)
-    .maybeSingle();
+    const { username, password, role } = validation.data;
+    const admin = createAdminClient();
 
-  // ไม่เจอ username เลย
-  if (error || !user) {
+    // 2. Lookup user profile in useraccount by username or email
+    const { data: profile, error: profileError } = await admin
+      .from("useraccount")
+      .select("user_id, username, email, status")
+      .or(`username.eq.${username},email.eq.${username}`)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" },
+        { status: 401 }
+      );
+    }
+
+    if (profile.status === "Suspended" || profile.status === "Banned") {
+      return NextResponse.json(
+        { message: `บัญชีผู้ใช้ถูกระงับการใช้งาน (${profile.status})` },
+        { status: 403 }
+      );
+    }
+
+    // 3. Verify user has the requested role
+    const { data: userRoles, error: roleError } = await admin
+      .from("user_role_assignment")
+      .select("role:role_id ( role_type )")
+      .eq("user_id", profile.user_id);
+
+    if (roleError) {
+      console.error("Role lookup error:", roleError);
+    }
+
+    const assignedRoles = (userRoles || [])
+      .map((item: any) => item.role?.role_type)
+      .filter(Boolean);
+
+    const hasRequestedRole =
+      assignedRoles.includes(role) || assignedRoles.includes("admin");
+
+    if (!hasRequestedRole) {
+      const roleName = role === "lender" ? "ผู้ให้เช่า" : "ผู้เช่า";
+      return NextResponse.json(
+        {
+          message: `บัญชีนี้ไม่ได้รับสิทธิ์การใช้งานในบทบาท ${roleName}`,
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4. Authenticate using Supabase Auth (stores session in cookies via @supabase/ssr)
+    const supabase = await createServerClient();
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password,
+      });
+
+    if (authError || !authData.user) {
+      console.error("Auth sign-in error:", authError);
+      return NextResponse.json(
+        { message: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" },
+        { status: 401 }
+      );
+    }
+
+    // 5. Determine redirection path
+    const redirectTo =
+      role === "lender"
+        ? "/lender/mydashboard"
+        : "/renter/mydashboard";
+
     return NextResponse.json(
-      { message: "username หรือรหัสผ่านไม่ถูกต้อง" },
-      { status: 401 }
+      {
+        message: "เข้าสู่ระบบสำเร็จ",
+        user: {
+          id: profile.user_id,
+          username: profile.username,
+          role,
+        },
+        redirectTo,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Login route error:", error);
+    return NextResponse.json(
+      { message: "เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์" },
+      { status: 500 }
     );
   }
-
-  // เช็ค password (plain text เทียบตรง ๆ)
-  if (user.password !== password) {
-    return NextResponse.json(
-      { message: "username หรือรหัสผ่านไม่ถูกต้อง" },
-      { status: 401 }
-    );
-  }
-
-  // login สำเร็จ - ไม่ส่ง password กลับไปด้วย
-  return NextResponse.json(
-    {
-      message: "เข้าสู่ระบบสำเร็จ",
-      user: { id: user.id, username: user.username, role },
-    },
-    { status: 200 }
-  );
 }
