@@ -14,6 +14,7 @@ const updateProfileSchema = z.object({
     ),
   bio: z.string().max(500, "ประวัติย่อต้องไม่เกิน 500 ตัวอักษร").optional().nullable(),
   avatarUrl: z.string().optional().nullable(),
+  bannerUrl: z.string().optional().nullable(),
   password: z
     .string()
     .min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร")
@@ -21,6 +22,7 @@ const updateProfileSchema = z.object({
     .regex(/[a-z]/, "รหัสผ่านต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว")
     .regex(/[0-9]/, "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว")
     .optional()
+    .nullable()
     .or(z.literal("")),
 });
 
@@ -43,7 +45,7 @@ export async function GET() {
 
     const { data: profile, error: profileError } = await admin
       .from("useraccount")
-      .select("user_id, username, email, national_id, bio, avatar_url, status, created_at")
+      .select("user_id, username, email, national_id, bio, avatar_url, banner_url, updated_at, status, created_at")
       .eq("user_id", user.id)
       .single();
 
@@ -63,8 +65,16 @@ export async function GET() {
       .map((item: any) => item.role?.role_type)
       .filter(Boolean);
 
+    const v = profile.updated_at
+      ? new Date(profile.updated_at).getTime()
+      : Date.now();
+
     const avatarUrl = profile.avatar_url
-      ? `/api/avatar?id=${user.id}`
+      ? `/api/avatar?id=${user.id}&v=${v}`
+      : "";
+
+    const bannerUrl = profile.banner_url
+      ? `/api/banner?id=${user.id}&v=${v}`
       : "";
 
     return NextResponse.json({
@@ -75,6 +85,7 @@ export async function GET() {
         nationalId: profile.national_id,
         bio: profile.bio ?? "",
         avatarUrl,
+        bannerUrl,
         status: profile.status,
         roles,
         createdAt: profile.created_at,
@@ -113,7 +124,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: firstError }, { status: 400 });
     }
 
-    const { username, bio, avatarUrl, password } = validation.data;
+    const { username, bio, avatarUrl, bannerUrl, password } = validation.data;
     const admin = createAdminClient();
 
     // 1. Check if new username is already taken by another user
@@ -131,7 +142,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // 2. Update useraccount (username & bio & avatar_url)
+    // 2. Update useraccount (username & bio & avatar_url & banner_url)
     const updateData: Record<string, any> = {
       username,
       bio: bio ?? "",
@@ -139,6 +150,9 @@ export async function PATCH(request: Request) {
     };
     if (avatarUrl === "") {
       updateData.avatar_url = null;
+    }
+    if (bannerUrl === "") {
+      updateData.banner_url = null;
     }
 
     const { error: updateError } = await admin
@@ -158,7 +172,12 @@ export async function PATCH(request: Request) {
     const userMetadata = {
       ...(user.user_metadata || {}),
       username,
-      avatar_url: avatarUrl === "" ? null : (avatarUrl ? `/api/avatar?id=${user.id}` : user.user_metadata?.avatar_url),
+      avatar_url:
+        avatarUrl === ""
+          ? null
+          : avatarUrl
+          ? `/api/avatar?id=${user.id}`
+          : user.user_metadata?.avatar_url,
     };
 
     if (password && password.trim().length >= 8) {
@@ -183,13 +202,15 @@ export async function PATCH(request: Request) {
       });
     }
 
+    const now = Date.now();
     return NextResponse.json({
       message: "บันทึกข้อมูลโปรไฟล์เรียบร้อยแล้ว",
       user: {
         id: user.id,
         username,
         bio: bio ?? "",
-        avatarUrl: avatarUrl === "" ? "" : `/api/avatar?id=${user.id}`,
+        avatarUrl: avatarUrl === "" ? "" : `/api/avatar?id=${user.id}&v=${now}`,
+        bannerUrl: bannerUrl === "" ? "" : `/api/banner?id=${user.id}&v=${now}`,
       },
     });
   } catch (error) {

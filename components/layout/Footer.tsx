@@ -83,7 +83,7 @@ export default function Footer() {
             <ul className="mt-4 space-y-3">
               <li className="flex items-start gap-2 text-sm text-[#c0e6fd]">
                 <MapPin className="h-4 w-4 shrink-0 text-sky-300" />
-                <span>Chulalongkorn University, Bangkok, Thailand</span>
+                <span>King Mongkut's Institute of Technology Ladkrabang, Bangkok, Thailand</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#c0e6fd]">
                 <Phone className="h-4 w-4 shrink-0 text-sky-300" />

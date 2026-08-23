@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   MessageCircle,
   Search,
@@ -569,8 +570,12 @@ function ChatContent() {
                     <ArrowLeft className="h-5 w-5" />
                   </button>
 
-                  {/* Partner Avatar */}
-                  <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-sm">
+                  {/* Partner Avatar (Clickable to Profile) */}
+                  <Link
+                    href={`/user/${activeRoom.partner.id}?from=chat`}
+                    title="ดูโปรไฟล์ผู้ใช้งาน"
+                    className="group relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-sm font-bold text-white shadow-sm ring-2 ring-transparent transition hover:ring-[#3f6593]"
+                  >
                     {activeRoom.partner.avatarUrl ? (
                       <img
                         src={activeRoom.partner.avatarUrl}
@@ -584,22 +589,34 @@ function ChatContent() {
                           : "U"}
                       </span>
                     )}
-                  </div>
+                  </Link>
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-bold text-slate-900">
+                      <Link
+                        href={`/user/${activeRoom.partner.id}?from=chat`}
+                        className="font-bold text-slate-900 transition hover:text-[#1b3554] hover:underline"
+                      >
                         {activeRoom.partner.username}
-                      </h2>
+                      </Link>
                       <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                         {activeRoom.partner.role}
                       </span>
                     </div>
                     <span className="text-[11px] text-emerald-600">
-                      ● ออนไลน์
+                      ● บัญชีใช้งาน
                     </span>
                   </div>
                 </div>
+
+                {/* View Profile Action Button */}
+                <Link
+                  href={`/user/${activeRoom.partner.id}?from=chat`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-[#3f6593] hover:bg-sky-50 hover:text-[#1b3554] active:scale-95"
+                >
+                  <User className="h-3.5 w-3.5 text-[#3f6593]" />
+                  <span>ดูโปรไฟล์</span>
+                </Link>
               </div>
 
               {/* Message Feed Container (Self-contained scroll) */}

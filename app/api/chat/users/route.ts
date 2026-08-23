@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
     let query = admin
       .from("useraccount")
-      .select("user_id, username, avatar_url, status")
+      .select("user_id, username, avatar_url, updated_at, status")
       .neq("user_id", user.id)
       .limit(10);
 
@@ -65,16 +65,28 @@ export async function GET(request: Request) {
         ? "ผู้ให้เช่า"
         : "ผู้เช่า";
 
+      const v = u.updated_at
+        ? new Date(u.updated_at).getTime()
+        : Date.now();
+
       return {
         id: u.user_id,
         username: u.username,
-        avatarUrl: u.avatar_url ? `/api/avatar?id=${u.user_id}` : null,
+        avatarUrl: u.avatar_url ? `/api/avatar?id=${u.user_id}&v=${v}` : null,
         role: roleLabel,
         status: u.status,
       };
     });
 
-    return NextResponse.json({ users: formatted });
+    return NextResponse.json(
+      { users: formatted },
+      {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      }
+    );
   } catch (error) {
     console.error("Search users error:", error);
     return NextResponse.json(
