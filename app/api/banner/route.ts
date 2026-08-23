@@ -13,22 +13,22 @@ export async function GET(request: Request) {
     const admin = createAdminClient();
     const { data: profile, error } = await admin
       .from("useraccount")
-      .select("avatar_url, updated_at")
+      .select("banner_url, updated_at")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (error || !profile || !profile.avatar_url) {
-      return new NextResponse("Avatar not found", { status: 404 });
+    if (error || !profile || !profile.banner_url) {
+      return new NextResponse("Banner not found", { status: 404 });
     }
 
-    const avatarData = profile.avatar_url;
+    const bannerData = profile.banner_url;
 
     // If it's a data URI
-    if (avatarData.startsWith("data:")) {
-      const commaIndex = avatarData.indexOf(",");
-      const meta = avatarData.substring(5, commaIndex);
-      const mimeType = meta.split(";")[0] || "image/png";
-      const base64Content = avatarData.substring(commaIndex + 1);
+    if (bannerData.startsWith("data:")) {
+      const commaIndex = bannerData.indexOf(",");
+      const meta = bannerData.substring(5, commaIndex);
+      const mimeType = meta.split(";")[0] || "image/jpeg";
+      const base64Content = bannerData.substring(commaIndex + 1);
       const buffer = Buffer.from(base64Content, "base64");
 
       return new NextResponse(buffer, {
@@ -44,9 +44,9 @@ export async function GET(request: Request) {
     }
 
     // If it's a direct URL
-    return NextResponse.redirect(avatarData);
+    return NextResponse.redirect(bannerData);
   } catch (error) {
-    console.error("Avatar serving error:", error);
-    return new NextResponse("Error fetching avatar", { status: 500 });
+    console.error("Banner serving error:", error);
+    return new NextResponse("Error fetching banner", { status: 500 });
   }
 }

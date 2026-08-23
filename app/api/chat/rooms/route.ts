@@ -35,7 +35,15 @@ export async function GET() {
     }
 
     if (!rooms || rooms.length === 0) {
-      return NextResponse.json({ rooms: [] });
+      return NextResponse.json(
+        { rooms: [] },
+        {
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        }
+      );
     }
 
     // Collect all partner IDs
@@ -48,7 +56,7 @@ export async function GET() {
     // 2. Fetch partners profiles
     const { data: profiles } = await admin
       .from("useraccount")
-      .select("user_id, username, avatar_url, status")
+      .select("user_id, username, avatar_url, updated_at, status")
       .in("user_id", partnerIds);
 
     const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
@@ -96,6 +104,10 @@ export async function GET() {
         ? "ผู้ให้เช่า"
         : "ผู้เช่า";
 
+      const v = partnerProfile?.updated_at
+        ? new Date(partnerProfile.updated_at).getTime()
+        : Date.now();
+
       return {
         id: r.chat_room_id,
         lastMessage: r.last_message || "",
@@ -106,7 +118,7 @@ export async function GET() {
           id: partnerId,
           username: partnerProfile?.username || "ผู้ใช้งาน",
           avatarUrl: partnerProfile?.avatar_url
-            ? `/api/avatar?id=${partnerId}`
+            ? `/api/avatar?id=${partnerId}&v=${v}`
             : null,
           role: roleLabel,
           status: partnerProfile?.status || "Active",
@@ -114,7 +126,15 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ rooms: formattedRooms });
+    return NextResponse.json(
+      { rooms: formattedRooms },
+      {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      }
+    );
   } catch (error) {
     console.error("Chat rooms GET error:", error);
     return NextResponse.json(
@@ -139,32 +159,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const { targetUserId, targetUsername } = body;
-
-    const admin = createAdminClient();
-    let partnerId = targetUserId;
-
-    // If targetUsername was passed, resolve partnerId
-    if (!partnerId && targetUsername) {
-      const { data: targetUser } = await admin
-        .from("useraccount")
-        .select("user_id")
-        .eq("username", targetUsername)
-        .maybeSingle();
-
-      if (!targetUser) {
-        return NextResponse.json(
-          { message: `ไม่พบผู้ใช้งานชื่อ "${targetUsername}"` },
-          { status: 404 }
-        );
-      }
-      partnerId = targetUser.user_id;
-    }
+    const { partnerId } = await request.json();
 
     if (!partnerId) {
       return NextResponse.json(
-        { message: "กรุณาระบุผู้ใช้งานที่ต้องการสนทนาด้วย" },
+        { message: "กรุณาระบุคู่สนทนา" },
         { status: 400 }
       );
     }
@@ -173,6 +172,22 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: "ไม่สามารถสร้างห้องแชทกับตัวเองได้" },
         { status: 400 }
+      );
+    }
+
+    const admin = createAdminClient();
+
+    // Verify partner exists
+    const { data: partnerUser, error: partnerError } = await admin
+      .from("useraccount")
+      .select("user_id")
+      .eq("user_id", partnerId)
+      .maybeSingle();
+
+    if (partnerError || !partnerUser) {
+      return NextResponse.json(
+        { message: "ไม่พบข้อมูลคู่สนทนา" },
+        { status: 404 }
       );
     }
 
