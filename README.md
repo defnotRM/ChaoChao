@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ChaoChao
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/defnotRM/ChaoChao.git
+cd ChaoChao
+```
+
+### 2. switch ไปยัง Branch ของตัวเอง
+
+ดูรายการ Branch ทั้งหมด บน remote repo
+
+```bash
+git branch -r
+```
+
+ดูรายการ Branch ทั้งหมด บน local ในเครื่องตัวเอง
+
+```bash
+git branch 
+```
+
+สลับไปยัง Branch ของตัวเอง (git version ใหม่ๆ ปกติมันจะสร้าง local branch ที่ track กับ remote branch ของตัวเองให้อัตโนมัติ)
+
+```bash
+git switch <your-branch>
+```
+
+หากยังไม่มี Branch ในเครื่อง (เฉพาะถ้ามันไม่มันยังไม่สร้าง local branch ที่ track กับ remote branch ให้นะ)
+
+```bash
+git switch --track origin/<your-branch>
+```
+
+### 3. ติดตั้ง Dependencies
+
+```bash
+npm install
+```
+
+### 4. รันโปรเจกต์
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+จากนั้นเปิด
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Workflow
 
-To learn more about Next.js, take a look at the following resources:
+ก่อนเริ่มทำงานทุกครั้ง ให้อัปเดต Branch ของตัวเองด้วย `main`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+git fetch origin 
+git switch <your-branch>
+git merge origin/main
+```
+คำอธิบาย
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `git fetch origin` ดึงข้อมูลและ Commit ล่าสุดจาก GitHub โดยยังไม่แก้ไขโค้ดในเครื่อง
+- `git switch <your-branch>` สลับไปยัง Branch ของตัวเอง
+- `git merge origin/main` รวมการเปลี่ยนแปลงล่าสุดจาก Branch `main` เข้า Branch ของตัวเอง
 
-## Deploy on Vercel
+เมื่อทำงานเสร็จ
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+git add .
+git commit -m "your message"
+git push
+```
+คําอธิบาย
+- `git add .`  เพิ่มไฟล์ที่มีการเปลี่ยนแปลงทั้งหมดเข้าสู่ Staging Area
+- `git commit -m "your message"`  บันทึกการเปลี่ยนแปลงพร้อมข้อความอธิบายสิ่งที่แก้ไข เช่น `your message`
+- `git push`  อัปโหลด Commit ล่าสุดจาก Branch ของตัวเองขึ้น GitHub
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+จากนั้นเปิด **Pull Request** จาก Branch ของตัวเองเข้า `main`
+
+---
+
+## Rules
+
+* ทำงานบน Branch ของตัวเองเท่านั้น
+* ห้าม Commit หรือ Push ลง `main` โดยตรง
+* อัปเดต Branch ของตัวเองจาก `main` ก่อนเริ่มงานทุกครั้ง
+* เปิด Pull Request ก่อน Merge เข้า `main`
