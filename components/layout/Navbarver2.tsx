@@ -81,6 +81,7 @@ export default function Navbarver2() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchAuthUser = useCallback(async () => {
     try {
@@ -100,6 +101,26 @@ export default function Navbarver2() {
       setUser(null);
     }
   }, []);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      const res = await fetch("/api/chat/rooms", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const totalUnread = (data.rooms || []).reduce(
+          (sum: number, r: any) => sum + (r.unreadCount || 0),
+          0
+        );
+        setUnreadCount(totalUnread);
+      }
+    } catch {
+      // Ignore
+    }
+  }, [user]);
 
   useEffect(() => {
     // 1. Fetch user from server endpoint
@@ -128,12 +149,23 @@ export default function Navbarver2() {
     };
   }, [fetchAuthUser, pathname]);
 
+  useEffect(() => {
+    if (user && pathname !== "/chat") {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    } else if (pathname === "/chat") {
+      setUnreadCount(0);
+    }
+  }, [user, fetchUnreadCount, pathname]);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", { method: "POST" });
       const supabase = createBrowserClient();
       await supabase.auth.signOut();
       setUser(null);
+      setUnreadCount(0);
       window.dispatchEvent(new Event("auth-state-change"));
       router.push("/login");
       router.refresh();
@@ -161,18 +193,23 @@ export default function Navbarver2() {
         {/* เมนูด้านขวาของ Laptop/Desktop */}
         <div className="flex shrink-0 items-center gap-3">
           <Link
-            href={user ? "/renter/favorites" : "/login"}
+            href={user ? "/renter/favorites" : "/login?redirect=/renter/favorites"}
             aria-label="รายการโปรด"
             className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
           >
             <Heart aria-hidden="true" className="h-6 w-6" />
           </Link>
           <Link
-            href={user ? "/chat" : "/login"}
+            href={user ? "/chat" : "/login?redirect=/chat"}
             aria-label="ข้อความ"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
           >
             <MessageCircle aria-hidden="true" className="h-6 w-6" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </Link>
           <span aria-hidden="true" className="mx-1 h-7 w-px bg-slate-200" />
 
@@ -260,13 +297,18 @@ export default function Navbarver2() {
 
           <div className="ml-auto flex items-center gap-2">
             <Link
-              href={user ? "/chat" : "/login"}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
+              href={user ? "/chat" : "/login?redirect=/chat"}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
             >
               <MessageCircle aria-hidden="true" className="h-6 w-6" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-sm ring-1 ring-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Link>
             <Link
-              href={user ? "/renter/favorites" : "/login"}
+              href={user ? "/renter/favorites" : "/login?redirect=/renter/favorites"}
               className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
             >
               <Heart aria-hidden="true" className="h-6 w-6" />
@@ -318,6 +360,18 @@ export default function Navbarver2() {
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-sky-50 hover:text-[#17326b]"
               >
                 ค้นหาอุปกรณ์
+              </Link>
+              <Link
+                href={user ? "/chat" : "/login?redirect=/chat"}
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-sky-50 hover:text-[#17326b]"
+              >
+                <span>กล่องข้อความ</span>
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                    {unreadCount} ข้อความใหม่
+                  </span>
+                )}
               </Link>
 
               {user ? (

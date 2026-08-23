@@ -5,25 +5,25 @@ const footerLinks = [
   {
     title: "บริษัท",
     links: [
-      { label: "เกี่ยวกับเรา", href: "/about" },
-      { label: "ติดต่อเรา", href: "/contact" },
-      { label: "ร่วมงานกับเรา", href: "/careers" },
+      { label: "เกี่ยวกับเรา", href: "/" },
+      { label: "ค้นหาอุปกรณ์", href: "/renter/hireproduct" },
+      { label: "กล่องข้อความ", href: "/chat" },
     ],
   },
   {
     title: "บริการ",
     links: [
-      { label: "ค้นหาอุปกรณ์", href: "/listings" },
-      { label: "สำหรับผู้ให้เช่า", href: "/landlord" },
-      { label: "สำหรับผู้เช่า", href: "/tenant" },
+      { label: "ค้นหาอุปกรณ์", href: "/renter/hireproduct" },
+      { label: "สำหรับผู้ให้เช่า", href: "/lender" },
+      { label: "สำหรับผู้เช่า", href: "/renter" },
     ],
   },
   {
     title: "ช่วยเหลือ",
     links: [
-      { label: "คำถามที่พบบ่อย", href: "/faq" },
-      { label: "นโยบายความเป็นส่วนตัว", href: "/privacy" },
-      { label: "ข้อตกลงการใช้งาน", href: "/terms" },
+      { label: "แดชบอร์ดผู้เช่า", href: "/renter/mydashboard" },
+      { label: "แดชบอร์ดผู้ให้เช่า", href: "/lender/mydashboard" },
+      { label: "โปรไฟล์ของฉัน", href: "/profile" },
     ],
   },
 ];
@@ -54,22 +54,6 @@ export default function Footer() {
               ระบบจัดการเช่า/ให้เช่าอุปกรณ์อิเล็กทรอนิกส์ที่ช่วยให้การจัดการอุปกรณ์
               และการติดต่อระหว่างผู้เช่ากับผู้ให้เช่าเป็นเรื่องง่าย
             </p>
-            <div className="mt-5 flex gap-3">
-              <a
-                href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 transition hover:bg-white/20"
-                aria-label="Facebook"
-              >
-                
-              </a>
-              <a
-                href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 transition hover:bg-white/20"
-                aria-label="Instagram"
-              >
-                
-              </a>
-            </div>
           </div>
 
           {/* Links */}
@@ -80,7 +64,7 @@ export default function Footer() {
               </h3>
               <ul className="mt-4 space-y-2.5">
                 {group.links.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
                       className="text-sm text-[#c0e6fd] transition hover:text-white"
@@ -98,40 +82,23 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white">ติดต่อเรา</h3>
             <ul className="mt-4 space-y-3">
               <li className="flex items-start gap-2 text-sm text-[#c0e6fd]">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>ลาดกระบัง, กรุงเทพมหานคร</span>
+                <MapPin className="h-4 w-4 shrink-0 text-sky-300" />
+                <span>Chulalongkorn University, Bangkok, Thailand</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#c0e6fd]">
-                <Phone className="h-4 w-4 shrink-0" />
-                <span>02-000-0000</span>
+                <Phone className="h-4 w-4 shrink-0 text-sky-300" />
+                <span>02-123-4567</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#c0e6fd]">
-                <Mail className="h-4 w-4 shrink-0" />
+                <Mail className="h-4 w-4 shrink-0 text-sky-300" />
                 <span>contact@chaochao.com</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row">
-          <p className="text-sm text-[#80aad3]">
-            © {new Date().getFullYear()} ChaoChao. สงวนลิขสิทธิ์ทุกประการ
-          </p>
-          <div className="flex gap-6">
-            <Link
-              href="/privacy"
-              className="text-sm text-[#80aad3] transition hover:text-white"
-            >
-              ความเป็นส่วนตัว
-            </Link>
-            <Link
-              href="/terms"
-              className="text-sm text-[#80aad3] transition hover:text-white"
-            >
-              ข้อตกลงการใช้งาน
-            </Link>
-          </div>
+        <div className="mt-12 border-t border-white/10 pt-6 text-center text-xs text-[#c0e6fd]">
+          &copy; {new Date().getFullYear()} ChaoChao. All rights reserved.
         </div>
       </div>
     </footer>
