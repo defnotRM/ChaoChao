@@ -54,7 +54,10 @@ export default function ProfilePage() {
           headers: { Pragma: "no-cache" },
         });
         if (res.status === 401) {
-          router.push("/login?redirect=/profile");
+          setUsername("ผู้ใช้งานทดลอง (Guest)");
+          setBio("ยินดีต้อนรับสู่ระบบ ChaoChao");
+          setRoles(["ผู้เช่า (Renter)", "ผู้ให้เช่า (Lender)"]);
+          setStatus("Active");
           return;
         }
 
