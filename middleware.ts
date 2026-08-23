@@ -37,25 +37,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh auth session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
-
-  // Protect private routes
-  const isProtectedRoute =
-    pathname.startsWith("/lender") ||
-    pathname.startsWith("/renter") ||
-    pathname.startsWith("/admin");
-
-  if (!user && isProtectedRoute) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
+  // Auth protection temporarily bypassed to allow browsing without login
   return response;
 }
 

@@ -144,7 +144,7 @@ function ChatContent() {
     try {
       const res = await fetch("/api/chat/rooms", { cache: "no-store" });
       if (res.status === 401) {
-        router.push("/login?redirect=/chat");
+        setRooms([]);
         return;
       }
       if (res.ok) {
