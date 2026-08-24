@@ -317,6 +317,7 @@ export default async function ProductDetailPage({
               deposit={product.deposit}
               ownerId={product.owner.id}
               ownerName={product.owner.displayName}
+              ownerAvatarUrl={product.owner.avatarUrl}
               ownerIsVerified={product.owner.isVerified}
               ownerRating={product.owner.rating}
               ownerReviewCount={product.owner.reviewCount}

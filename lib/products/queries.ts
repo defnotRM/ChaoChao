@@ -254,7 +254,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         .order("seq", { ascending: true }),
       admin
         .from("useraccount")
-        .select("user_id, firstname, lastname, username, status, created_at")
+        .select("user_id, firstname, lastname, username, avatar_url, updated_at, status, created_at")
         .eq("user_id", it.user_id)
         .maybeSingle(),
       // รีวิวของชิ้นนี้ + ชื่อผู้รีวิว (renter ผ่าน rentalorder.user_id)
@@ -332,6 +332,13 @@ export async function getProductById(id: string): Promise<Product | null> {
     owner?.username ||
     "ผู้ให้เช่า";
 
+  const v = owner?.updated_at
+    ? new Date(owner.updated_at).getTime()
+    : Date.now();
+  const avatarUrl = owner?.avatar_url
+    ? `/api/avatar?id=${owner.user_id}&v=${v}`
+    : null;
+
   return {
     id: it.item_id,
     title: it.item_name,
@@ -350,6 +357,7 @@ export async function getProductById(id: string): Promise<Product | null> {
     owner: {
       id: it.user_id,
       displayName: ownerName,
+      avatarUrl,
       rating: ownerRating,
       reviewCount: ownerReviewCount,
       responseRate: 0, // ไม่มีใน DB

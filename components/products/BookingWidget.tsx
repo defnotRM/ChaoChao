@@ -24,6 +24,7 @@ export interface BookingWidgetProps {
   deposit: number;
   ownerId: string;
   ownerName: string;
+  ownerAvatarUrl?: string | null;
   ownerIsVerified: boolean;
   ownerRating: number;
   ownerReviewCount: number;
@@ -35,6 +36,7 @@ export default function BookingWidget({
   deposit,
   ownerId,
   ownerName,
+  ownerAvatarUrl,
   ownerIsVerified,
   ownerRating,
   ownerReviewCount,
@@ -80,9 +82,17 @@ export default function BookingWidget({
 
       {/* การ์ดผู้ปล่อยเช่า */}
       <div className="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-base font-bold text-white">
-          {ownerName.charAt(0).toUpperCase()}
-        </span>
+        {ownerAvatarUrl ? (
+          <img
+            src={ownerAvatarUrl}
+            alt={ownerName}
+            className="h-11 w-11 shrink-0 rounded-full object-cover shadow-sm"
+          />
+        ) : (
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-base font-bold text-white">
+            {ownerName.charAt(0).toUpperCase()}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <p className="truncate text-sm font-bold text-slate-900">

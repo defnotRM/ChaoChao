@@ -60,7 +60,7 @@ export default async function ProductRentPage({
     await Promise.all([
       admin
         .from("useraccount")
-        .select("username, firstname, lastname, status, created_at")
+        .select("username, firstname, lastname, avatar_url, updated_at, status, created_at")
         .eq("user_id", item.user_id)
         .maybeSingle(),
       admin
@@ -95,6 +95,13 @@ export default async function ProductRentPage({
     [owner?.firstname, owner?.lastname].filter(Boolean).join(" ").trim() ||
     owner?.username ||
     "ผู้ให้เช่า";
+
+  const v = owner?.updated_at
+    ? new Date(owner.updated_at).getTime()
+    : Date.now();
+  const avatarUrl = owner?.avatar_url
+    ? `/api/avatar?id=${item.user_id}&v=${v}`
+    : null;
 
   const locations: BookingLocation[] = (locationsRes.data || []).map((loc) => ({
     id: loc.location_id,
@@ -139,6 +146,7 @@ export default async function ProductRentPage({
     },
     owner: {
       displayName: ownerName,
+      avatarUrl,
       isVerified: owner?.status === "Active",
       joinedAt: owner?.created_at ?? new Date().toISOString(),
     },

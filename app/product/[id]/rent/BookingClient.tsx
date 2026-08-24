@@ -541,9 +541,17 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
 
               {/* ข้อมูลผู้ให้เช่า */}
               <div className="mt-4 flex items-center gap-2.5 rounded-2xl bg-slate-50 p-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white">
-                  {owner.displayName.charAt(0).toUpperCase()}
-                </span>
+                {owner.avatarUrl ? (
+                  <img
+                    src={owner.avatarUrl}
+                    alt={owner.displayName}
+                    className="h-9 w-9 shrink-0 rounded-full object-cover shadow-sm"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xs font-bold text-white">
+                    {owner.displayName.charAt(0).toUpperCase()}
+                  </span>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
                     <p className="truncate text-xs font-bold text-slate-900">

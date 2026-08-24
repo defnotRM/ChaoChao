@@ -20,6 +20,7 @@ export type BookingPageData = {
   };
   owner: {
     displayName: string;
+    avatarUrl?: string | null;
     isVerified: boolean;
     joinedAt: string;
   };
