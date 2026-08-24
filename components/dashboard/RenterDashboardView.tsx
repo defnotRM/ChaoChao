@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/StateHandling';
 
 interface RenterOrder {
   order_id: string;
+  user_id?: string;
   item_id: string;
   start_date: string;
   end_date: string;
@@ -314,11 +315,12 @@ export function RenterDashboardView({ userId }: { userId?: string } = {}) {
                       </Link>
 
                       <Link
-                        href={`/renter/myproductsList/${order.order_id}`}
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+                        href={`/dashboard/${userId || order.user_id}/rent/${order.order_id}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition"
                         title="ดูรายละเอียดคำสั่งเช่า"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <span>ดูรายละเอียดคำสั่งเช่า</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
                     </div>
                   </div>
