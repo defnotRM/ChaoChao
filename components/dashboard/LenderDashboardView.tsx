@@ -460,7 +460,7 @@ export function LenderDashboardView({ userId }: { userId?: string } = {}) {
                     </div>
 
                     <Link
-                      href={`/lender/editmyproductList/${item.item_id}`}
+                      href={`/lender/editmyproduct/${item.item_id}`}
                       className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#3f6593] hover:bg-sky-50 hover:text-[#1b3554]"
                     >
                       <Edit className="h-3.5 w-3.5" />

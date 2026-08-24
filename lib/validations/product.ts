@@ -45,7 +45,6 @@ export const createProductSchema = z.object({
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 
-// ใช้ตอนแก้ไขสินค้า — ทุก field เป็น optional เพราะแก้ทีละส่วนได้
 export const updateProductSchema = z.object({
   categoryId: z.string().nullish(),
   itemName: z.string().min(1).max(200).nullish(),
@@ -56,6 +55,22 @@ export const updateProductSchema = z.object({
   status: z
     .enum(["available", "rented", "maintenance", "inactive"])
     .optional(),
+  locations: z
+    .array(
+      z.object({
+        description: z.string().nullish(),
+        no: z.string().nullish(),
+        alley: z.string().nullish(),
+        road: z.string().nullish(),
+        subdistrict: z.string().nullish(),
+        district: z.string().nullish(),
+        province: z.string().nullish(),
+      })
+    )
+    .nullish(),
+  availabilityStart: z.string().nullish(),
+  availabilityEnd: z.string().nullish(),
+  conditions: z.array(z.string()).nullish(),
 });
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
