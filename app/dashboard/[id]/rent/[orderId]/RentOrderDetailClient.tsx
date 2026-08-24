@@ -539,35 +539,63 @@ export default function RentOrderDetailClient({
 
               {/* ปุ่มการทำงาน */}
               <div className="mt-4 space-y-2.5">
-                {canPay ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentModal(true)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98]"
-                  >
-                    <Wallet className="h-4 w-4" />
-                    <span>ชำระเงิน / อัปโหลดสลิป</span>
-                  </button>
-                ) : hasPending ? (
-                  <div className="rounded-2xl bg-sky-50 p-4 border border-sky-200">
-                    <p className="text-xs font-semibold text-sky-900 flex items-center gap-1.5">
-                      <Clock3 className="h-4 w-4 text-sky-600 shrink-0" />
-                      <span>อัปโหลดสลิปแล้ว · รอผู้ให้เช่าตรวจสอบ</span>
+                {currentStatus === "requested" ? (
+                  <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200">
+                    <p className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                      <Clock3 className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span>ส่งคำขอเช่าแล้ว · รอผู้ให้เช่าอนุมัติ</span>
                     </p>
                   </div>
+                ) : currentStatus === "awaiting_payment" ? (
+                  canPay ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentModal(true)}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98]"
+                    >
+                      <Wallet className="h-4 w-4" />
+                      <span>ชำระเงิน / อัปโหลดสลิป</span>
+                    </button>
+                  ) : (
+                    <div className="rounded-2xl bg-sky-50 p-4 border border-sky-200">
+                      <p className="text-xs font-semibold text-sky-900 flex items-center gap-1.5">
+                        <Clock3 className="h-4 w-4 text-sky-600 shrink-0" />
+                        <span>อัปโหลดสลิปแล้ว · รอผู้ให้เช่าตรวจสอบ</span>
+                      </p>
+                    </div>
+                  )
+                ) : currentStatus === "paid" ? (
+                  <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200 space-y-1.5">
+                    <p className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>ชำระเงินเรียบร้อยแล้ว</span>
+                    </p>
+                    <p className="text-xs text-emerald-700 leading-relaxed">
+                      กรุณารอผู้ให้เช่าตรวจสอบสภาพอุปกรณ์และถ่ายรูปบันทึกหลักฐานก่อนส่งมอบ จากนั้นนัดรับอุปกรณ์ตามวันและจุดนัดหมาย
+                    </p>
+                  </div>
+                ) : currentStatus === "item_sent" || currentStatus === "item_returned" ? (
+                  <div className="rounded-2xl bg-sky-50 p-4 border border-sky-200 space-y-1.5">
+                    <p className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+                      <Package className="h-4 w-4 text-sky-600 shrink-0" />
+                      <span>กำลังเช่าใช้งานอุปกรณ์</span>
+                    </p>
+                    <p className="text-xs text-sky-700 leading-relaxed">
+                      กำหนดคืนอุปกรณ์ในวันที่ {formatDate(order.end_date)} ที่ {order.return_location || "จุดนัดคืน"} (ผู้ให้เช่าจะทำการตรวจสอบและถ่ายรูปสภาพหลังการใช้งาน)
+                    </p>
+                  </div>
+                ) : currentStatus === "completed" ? (
+                  <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200 space-y-1.5">
+                    <p className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>การเช่าเสร็จสมบูรณ์เรียบร้อยแล้ว</span>
+                    </p>
+                    <p className="text-xs text-emerald-700">ขอบคุณที่ใช้บริการ ChaoChao!</p>
+                  </div>
                 ) : (
-                  <StubButton primary label="ชำระเงิน / อัปโหลดสลิป" />
-                )}
-                {canHandover ? (
-                  <Link
-                    href={`/renter/myproductsList/${order.order_id}/handover`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#3f6593] bg-white px-5 py-3 text-sm font-semibold text-[#1b3554] transition hover:bg-sky-50 active:scale-[0.98]"
-                  >
-                    <Camera className="h-4 w-4" />
-                    รับ–คืนของ / อัปโหลดหลักฐาน
-                  </Link>
-                ) : (
-                  <StubButton label="รับ–คืนของ / อัปโหลดหลักฐาน" />
+                  <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-700">สถานะ: {chip.label}</p>
+                  </div>
                 )}
               </div>
             </div>

@@ -28,7 +28,9 @@ import {
   ShieldCheck,
   ThumbsDown,
   ThumbsUp,
+  Upload,
   User,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -122,12 +124,11 @@ function statusStep(status: string, hasPending: boolean): number {
     case "awaiting_payment":
       return hasPending ? 3 : 2;
     case "paid":
-      return 4;
+      return 4; // ขั้นที่ 5 "รับของ" รอผู้ให้เช่าถ่ายรูปก่อนให้เช่าและส่งมอบ
     case "item_sent":
-      return 5;
     case "item_returned":
     case "awaiting_additional_payment":
-      return 5;
+      return 5; // ขั้นที่ 6 "คืนของ" รอผู้ให้เช่าตรวจสภาพหลังใช้งาน
     case "completed":
       return TIMELINE.length; // ครบทุกขั้น (6)
     default:
@@ -161,6 +162,12 @@ export default function LendOrderDetailClient({
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Modals for Before & After evidence
+  const [showBeforeModal, setShowBeforeModal] = useState<boolean>(false);
+  const [showAfterModal, setShowAfterModal] = useState<boolean>(false);
+  const [beforePreview, setBeforePreview] = useState<string | null>(null);
+  const [afterPreview, setAfterPreview] = useState<string | null>(null);
 
   const hasPending = payments.some((p) => p.status === "pending");
   const paidAmount = payments
@@ -235,6 +242,78 @@ export default function LendOrderDetailClient({
       router.refresh();
     } catch (err) {
       console.error("Error updating order status:", err);
+      setErrorMsg("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  // ส่งมอบอุปกรณ์ & บันทึกสภาพก่อนให้เช่า
+  async function handleSubmitBeforeHandover(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      setIsUpdating(true);
+      setErrorMsg(null);
+
+      const res = await fetch("/api/handover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.order_id,
+          userId,
+          evidenceType: "lender_before",
+          imageUrl: beforePreview || "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=60",
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        setErrorMsg(result.message || "บันทึกหลักฐานไม่สำเร็จ");
+        return;
+      }
+
+      setCurrentStatus("item_sent");
+      setShowBeforeModal(false);
+      setSuccessMsg("บันทึกหลักฐานสภาพก่อนให้เช่าและส่งมอบอุปกรณ์เรียบร้อยแล้ว");
+      router.refresh();
+    } catch (err) {
+      console.error("Handover submit error:", err);
+      setErrorMsg("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  // รับคืนอุปกรณ์ & บันทึกสภาพหลังการใช้งาน
+  async function handleSubmitAfterReturn(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      setIsUpdating(true);
+      setErrorMsg(null);
+
+      const res = await fetch("/api/return", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.order_id,
+          userId,
+          evidenceType: "lender_after",
+          imageUrl: afterPreview || "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=60",
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        setErrorMsg(result.message || "บันทึกหลักฐานไม่สำเร็จ");
+        return;
+      }
+
+      setCurrentStatus("completed");
+      setShowAfterModal(false);
+      setSuccessMsg("ตรวจสอบสภาพหลังการใช้งานและเสร็จสิ้นการเช่าเรียบร้อยแล้ว");
+      router.refresh();
+    } catch (err) {
+      console.error("Return submit error:", err);
       setErrorMsg("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
     } finally {
       setIsUpdating(false);
@@ -590,32 +669,49 @@ export default function LendOrderDetailClient({
                 )
               ) : currentStatus === "paid" ? (
                 <div className="space-y-3">
-                  <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200">
-                    <p className="text-xs font-semibold text-emerald-900">
+                  <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200 space-y-1">
+                    <p className="text-xs font-bold text-emerald-900">
                       ผู้เช่าชำระเงินเรียบร้อยแล้ว
                     </p>
-                    <p className="text-[11px] text-emerald-700 mt-1">
-                      รอนัดหมายส่งมอบอุปกรณ์ในวันที่ {formatDate(order.start_date)}
+                    <p className="text-[11px] text-emerald-700">
+                      กรุณาถ่ายรูปบันทึกสภาพอุปกรณ์ก่อนส่งมอบ จากนั้นส่งมอบอุปกรณ์ให้ผู้เช่า
                     </p>
                   </div>
                   <button
                     type="button"
-                    disabled
-                    title="ฟีเจอร์กำลังพัฒนา"
-                    className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3 text-sm font-semibold text-white opacity-60"
+                    onClick={() => setShowBeforeModal(true)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-95"
                   >
                     <Camera className="h-4 w-4" />
-                    <span>บันทึกการส่งมอบอุปกรณ์</span>
+                    <span>ถ่ายรูปสภาพก่อนให้เช่า &amp; ส่งมอบ</span>
                   </button>
                 </div>
-              ) : currentStatus === "item_sent" ? (
-                <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200 space-y-2">
-                  <p className="text-xs font-semibold text-emerald-900">
-                    อุปกรณ์กำลังถูกเช่าใช้งาน
+              ) : currentStatus === "item_sent" || currentStatus === "item_returned" ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl bg-sky-50 p-4 border border-sky-200 space-y-1">
+                    <p className="text-xs font-bold text-sky-900">
+                      อุปกรณ์กำลังถูกเช่าใช้งาน
+                    </p>
+                    <p className="text-[11px] text-sky-700">
+                      นัดหมายรับคืนในวันที่ {formatDate(order.end_date)} เมื่อได้รับของคืนแล้ว ให้ถ่ายรูปบันทึกสภาพหลังการใช้งาน
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAfterModal(true)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-700/20 transition duration-200 hover:from-emerald-700 hover:to-teal-800 active:scale-95"
+                  >
+                    <Camera className="h-4 w-4" />
+                    <span>ถ่ายรูปสภาพหลังใช้งาน &amp; เสร็จสิ้นการเช่า</span>
+                  </button>
+                </div>
+              ) : currentStatus === "completed" ? (
+                <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200 space-y-1.5">
+                  <p className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>การเช่าเสร็จสมบูรณ์เรียบร้อยแล้ว</span>
                   </p>
-                  <p className="text-xs text-emerald-700">
-                    กำหนดคืนอุปกรณ์ในวันที่ {formatDate(order.end_date)}
-                  </p>
+                  <p className="text-xs text-emerald-700">ตรวจรับอุปกรณ์คืนและบันทึกสภาพเรียบร้อยแล้ว</p>
                 </div>
               ) : (
                 <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200">
@@ -651,6 +747,164 @@ export default function LendOrderDetailClient({
           </aside>
         </div>
       </div>
+
+      {/* Modal 1: ถ่ายรูปสภาพสินค้าก่อนให้เช่า (Step 5) */}
+      {showBeforeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowBeforeModal(false)}
+              className="absolute right-4 top-4 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#c0e6fd]/40 text-[#1b3554]">
+                <Camera className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">ถ่ายรูปสภาพอุปกรณ์ก่อนให้เช่า</h3>
+                <p className="text-xs text-slate-500">บันทึกเป็นหลักฐานก่อนส่งมอบอุปกรณ์ให้ผู้เช่า</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitBeforeHandover} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  รูปถ่ายสภาพอุปกรณ์ (ทุกมุม/จุดสำคัญ) <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-5 text-center hover:bg-slate-50">
+                  {beforePreview ? (
+                    <div className="space-y-2">
+                      <img src={beforePreview} alt="สภาพก่อนให้เช่า" className="max-h-48 rounded-xl object-contain mx-auto shadow-sm" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                        <Upload className="h-5 w-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700">คลิกเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง</p>
+                      <p className="text-[11px] text-slate-400">แนะนำให้ถ่ายรูปตัวเครื่อง หน้าเลนส์ ปุ่ม และอุปกรณ์เสริม</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setBeforePreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="mt-3 block w-full text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[#1b3554] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-[#000f22]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBeforeModal(false)}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-2.5 text-xs font-semibold text-white shadow-md transition hover:from-[#000f22] hover:to-[#1b3554] disabled:opacity-50"
+                >
+                  {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  <span>ยืนยันส่งมอบอุปกรณ์</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2: ถ่ายรูปสภาพสินค้าหลังการใช้งาน (Step 6) */}
+      {showAfterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowAfterModal(false)}
+              className="absolute right-4 top-4 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                <Camera className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">ถ่ายรูปสภาพอุปกรณ์หลังการใช้งาน</h3>
+                <p className="text-xs text-slate-500">บันทึกเป็นหลักฐานหลังรับอุปกรณ์คืนและเสร็จสิ้นการเช่า</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitAfterReturn} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  รูปถ่ายสภาพอุปกรณ์หลังใช้งาน <span className="text-rose-500">*</span>
+                </label>
+                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-5 text-center hover:bg-slate-50">
+                  {afterPreview ? (
+                    <div className="space-y-2">
+                      <img src={afterPreview} alt="สภาพหลังใช้งาน" className="max-h-48 rounded-xl object-contain mx-auto shadow-sm" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                        <Upload className="h-5 w-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700">คลิกเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง</p>
+                      <p className="text-[11px] text-slate-400">ตรวจสอบสภาพ ความสมบูรณ์ และการทำงานของอุปกรณ์</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setAfterPreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="mt-3 block w-full text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-emerald-700"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAfterModal(false)}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2.5 text-xs font-semibold text-white shadow-md transition hover:from-emerald-700 hover:to-teal-800 disabled:opacity-50"
+                >
+                  {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  <span>ยืนยันตรวจรับคืน &amp; เสร็จสิ้นการเช่า</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
