@@ -67,7 +67,7 @@ export default function BookingWidget({
 
       {/* ปุ่มหลัก → หน้าเลือกวันเช่า */}
       <Link
-        href={`/renter/hireproduct/${productId}/booking`}
+        href={`/product/${productId}/rent`}
         className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98]"
       >
         <CalendarDays className="h-5 w-5" />
