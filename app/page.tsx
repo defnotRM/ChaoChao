@@ -58,6 +58,8 @@ const gettingStartedOptions = [
 ];
 
 
+export const dynamic = "force-dynamic";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Product } from "@/lib/types/product";
 
@@ -88,14 +90,15 @@ async function getFeaturedProducts(): Promise<Product[]> {
       .order("created_at", { ascending: false })
       .limit(8);
 
-    if (error || !dbItems || dbItems.length === 0) {
-      return getMockProducts().slice(0, 8);
+    if (error || !dbItems) {
+      console.error("Error fetching featured products:", error);
+      return [];
     }
 
     return dbItems.map((item: any) => ({
       id: item.item_id,
       title: item.item_name,
-      categoryId: item.category?.category_id || "1",
+      categoryId: String(item.category?.category_id || "1"),
       categoryName: item.category?.category_name || "อุปกรณ์ทั่วไป",
       imageUrls: [],
       description: item.description || "",
@@ -134,8 +137,9 @@ async function getFeaturedProducts(): Promise<Product[]> {
       availability: [],
       createdAt: item.created_at || new Date().toISOString(),
     }));
-  } catch {
-    return getMockProducts().slice(0, 8);
+  } catch (err) {
+    console.error("Error loading featured products:", err);
+    return [];
   }
 }
 
