@@ -64,19 +64,19 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
-// สร้าง key "YYYY-MM-DD" (เทียบกันแบบ string ได้ตรงตามลำดับเวลา)
+// สร้าง key "YYYY-MM-DD"
 function keyOf(year: number, month: number, day: number) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
 function keyToDate(key: string) {
   const [y, m, d] = key.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d));
+  return new Date(y, m - 1, d);
 }
 
 function inclusiveDays(startKey: string, endKey: string) {
   const diff = keyToDate(endKey).getTime() - keyToDate(startKey).getTime();
-  return Math.floor(diff / 86_400_000) + 1;
+  return Math.max(1, Math.round(diff / 86_400_000) + 1);
 }
 
 function inRanges(key: string, ranges: DateRange[]) {
@@ -93,20 +93,25 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
   const { item, owner, locations, availability, bookedRanges, rating } = data;
   const router = useRouter();
 
-  // ขอบเขตเดือนที่เลื่อนดูได้ = ช่วง availability ที่เปิดจอง
+  const todayKey = useMemo(() => {
+    const now = new Date();
+    return keyOf(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  // ขอบเขตเดือนที่เลื่อนดูได้ = ช่วง availability ที่เปิดจอง หรือเริ่มต้นจากเดือนปัจจุบันไปข้างหน้า 12 เดือน
   const bounds = useMemo(() => {
+    const now = new Date();
+    const currentMonth = monthValue(now.getFullYear(), now.getMonth());
     if (availability.length === 0) {
-      const now = new Date();
-      const v = monthValue(now.getUTCFullYear(), now.getUTCMonth());
-      return { min: v, max: v };
+      return { min: currentMonth, max: currentMonth + 11 };
     }
     const starts = availability.map((a) => keyToDate(a.start));
     const ends = availability.map((a) => keyToDate(a.end));
     const minDate = new Date(Math.min(...starts.map((d) => d.getTime())));
     const maxDate = new Date(Math.max(...ends.map((d) => d.getTime())));
     return {
-      min: monthValue(minDate.getUTCFullYear(), minDate.getUTCMonth()),
-      max: monthValue(maxDate.getUTCFullYear(), maxDate.getUTCMonth()),
+      min: Math.min(currentMonth, monthValue(minDate.getFullYear(), minDate.getMonth())),
+      max: Math.max(currentMonth + 11, monthValue(maxDate.getFullYear(), maxDate.getMonth())),
     };
   }, [availability]);
 
@@ -124,9 +129,13 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
   const viewYear = Math.floor(viewMonth / 12);
   const viewMonthIndex = viewMonth % 12;
 
+  const isPast = (key: string) => key < todayKey;
   const isBooked = (key: string) => inRanges(key, bookedRanges);
-  const isOpen = (key: string) => inRanges(key, availability);
-  const isSelectable = (key: string) => isOpen(key) && !isBooked(key);
+  const isOpen = (key: string) => {
+    if (availability.length === 0) return !isPast(key);
+    return inRanges(key, availability) && !isPast(key);
+  };
+  const isSelectable = (key: string) => isOpen(key) && !isBooked(key) && item.status === "available";
 
   // ไม่ให้ช่วงคร่อมวันที่ถูกจอง/นอกช่วงเปิดจอง
   function spanIsClear(from: string, to: string) {
@@ -138,7 +147,7 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
       t += 86_400_000
     ) {
       const d = new Date(t);
-      const k = keyOf(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      const k = keyOf(d.getFullYear(), d.getMonth(), d.getDate());
       if (!isSelectable(k)) return false;
     }
     return true;
@@ -170,12 +179,8 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
 
   /* ── month grid ── */
   const cells = useMemo(() => {
-    const firstWeekday = new Date(
-      Date.UTC(viewYear, viewMonthIndex, 1)
-    ).getUTCDay();
-    const daysInMonth = new Date(
-      Date.UTC(viewYear, viewMonthIndex + 1, 0)
-    ).getUTCDate();
+    const firstWeekday = new Date(viewYear, viewMonthIndex, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonthIndex + 1, 0).getDate();
     const list: Array<{ key: string; day: number } | null> = [];
     for (let i = 0; i < firstWeekday; i += 1) list.push(null);
     for (let d = 1; d <= daysInMonth; d += 1) {
@@ -204,7 +209,6 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
     const returnLoc = locations.find((l) => l.id === returnId);
 
     // payload รูปทรง rentalorder — จุดส่งต่อให้ Step "ส่งคำขอ"
-    // ยังไม่ INSERT: ต้องมี auth (user_id = auth.uid()) ซึ่งตอนนี้ระบบ bypass login อยู่
     const next: BookingDraft = {
       item_id: item.id,
       user_id: null,
@@ -223,7 +227,7 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
     try {
       sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(next));
     } catch {
-      // sessionStorage อาจถูกปิด — ยังแสดง payload ให้ตรวจได้
+      // sessionStorage อาจถูกปิด
     }
     setDraft(next);
     // ไหลต่อไป Step 2 "ส่งคำขอเช่า"
@@ -246,21 +250,24 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
           </Link>
           <span aria-hidden="true">/</span>
           <Link
-            href="/renter/hireproduct"
+            href="/products"
             className="transition hover:text-[#1b3554]"
           >
-            เช่าอุปกรณ์
+            สินค้าสำหรับเช่า
           </Link>
           <span aria-hidden="true">/</span>
-          <span className="max-w-[16rem] truncate font-medium text-slate-700">
+          <Link
+            href={`/product/${item.id}`}
+            className="max-w-[16rem] truncate font-medium text-slate-700 hover:text-[#1b3554]"
+          >
             {item.name}
-          </span>
+          </Link>
           <span aria-hidden="true">/</span>
           <span className="font-semibold text-[#1b3554]">เลือกวันเช่า</span>
         </nav>
 
         <Link
-          href={`/renter/hireproduct/${item.id}`}
+          href={`/product/${item.id}`}
           className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-[#1b3554]"
         >
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />

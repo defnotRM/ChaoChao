@@ -176,8 +176,19 @@ export default function RequestClient({ data }: { data: RequestPageData }) {
           aria-label="เส้นทางนำทาง"
           className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-slate-500"
         >
-          <Link href="/renter/hireproduct" className="transition hover:text-[#1b3554]">
-            เช่าอุปกรณ์
+          <Link href="/" className="transition hover:text-[#1b3554]">
+            หน้าแรก
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/products" className="transition hover:text-[#1b3554]">
+            สินค้าสำหรับเช่า
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link
+            href={`/product/${item.id}`}
+            className="transition hover:text-[#1b3554]"
+          >
+            {item.name}
           </Link>
           <span aria-hidden="true">/</span>
           <Link
