@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { createBrowserClient } from "@/lib/supabase/client";
 import {
   AlertCircle,
   AlertTriangle,
@@ -169,6 +170,72 @@ export default function RentOrderDetailClient({
   const [isSubmittingSlip, setIsSubmittingSlip] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const fetchLatestOrder = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/rentals/${order.order_id}`, {
+        cache: "no-store",
+        headers: { Pragma: "no-cache" },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const latestOrder = json.data;
+      if (!latestOrder) return;
+
+      if (latestOrder.status && latestOrder.status !== currentStatus) {
+        setCurrentStatus(latestOrder.status);
+        router.refresh();
+      }
+
+      if (Array.isArray(latestOrder.payment)) {
+        setPaymentsList(latestOrder.payment);
+      }
+    } catch {
+      // ignore
+    }
+  }, [order.order_id, currentStatus, router]);
+
+  // Realtime subscription + fallback poll
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    const channel = supabase
+      .channel(`renter-order-realtime-${order.order_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "rentalorder",
+          filter: `order_id=eq.${order.order_id}`,
+        },
+        (payload) => {
+          if (payload.new && (payload.new as any).status) {
+            setCurrentStatus((payload.new as any).status);
+            router.refresh();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "payment",
+          filter: `order_id=eq.${order.order_id}`,
+        },
+        () => {
+          fetchLatestOrder();
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(fetchLatestOrder, 2500);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [order.order_id, fetchLatestOrder]);
 
   const hasPending = paymentsList.some((p) => p.status === "pending");
   const paidAmount = paymentsList

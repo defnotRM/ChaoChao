@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { createBrowserClient } from "@/lib/supabase/client";
 import {
   AlertCircle,
   AlertTriangle,
@@ -160,6 +161,7 @@ export default function LendOrderDetailClient({
   const { order, item, renter, payments } = data;
 
   const [currentStatus, setCurrentStatus] = useState<string>(order.status);
+  const [paymentsList, setPaymentsList] = useState(payments);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -170,8 +172,74 @@ export default function LendOrderDetailClient({
   const [beforePreview, setBeforePreview] = useState<string | null>(null);
   const [afterPreview, setAfterPreview] = useState<string | null>(null);
 
-  const hasPending = payments.some((p) => p.status === "pending");
-  const paidAmount = payments
+  const fetchLatestOrder = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/rentals/${order.order_id}`, {
+        cache: "no-store",
+        headers: { Pragma: "no-cache" },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      const latestOrder = json.data;
+      if (!latestOrder) return;
+
+      if (latestOrder.status && latestOrder.status !== currentStatus) {
+        setCurrentStatus(latestOrder.status);
+        router.refresh();
+      }
+
+      if (Array.isArray(latestOrder.payment)) {
+        setPaymentsList(latestOrder.payment);
+      }
+    } catch {
+      // ignore
+    }
+  }, [order.order_id, currentStatus, router]);
+
+  // Realtime subscription + fallback poll
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    const channel = supabase
+      .channel(`lender-order-realtime-${order.order_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "rentalorder",
+          filter: `order_id=eq.${order.order_id}`,
+        },
+        (payload) => {
+          if (payload.new && (payload.new as any).status) {
+            setCurrentStatus((payload.new as any).status);
+            router.refresh();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "payment",
+          filter: `order_id=eq.${order.order_id}`,
+        },
+        () => {
+          fetchLatestOrder();
+        }
+      )
+      .subscribe();
+
+    const interval = setInterval(fetchLatestOrder, 2500);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [order.order_id, fetchLatestOrder]);
+
+  const hasPending = paymentsList.some((p) => p.status === "pending");
+  const paidAmount = paymentsList
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
@@ -637,10 +705,10 @@ export default function LendOrderDetailClient({
                       <p className="text-[11px] text-amber-700 mt-1">
                         กรุณาตรวจสอบยอดเงินในบัญชีธนาคาร จากนั้นกดปุ่มยืนยันการชำระเงิน
                       </p>
-                      {payments.find((p) => p.status === "pending")?.slip_image_url && (
+                      {paymentsList.find((p) => p.status === "pending")?.slip_image_url && (
                         <div className="mt-2">
                           <a
-                            href={payments.find((p) => p.status === "pending")?.slip_image_url || "#"}
+                            href={paymentsList.find((p) => p.status === "pending")?.slip_image_url || "#"}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 underline"
