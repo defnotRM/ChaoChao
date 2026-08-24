@@ -81,8 +81,18 @@ function inclusiveDays(startKey: string, endKey: string) {
   return Math.max(1, Math.round(diff / 86_400_000) + 1);
 }
 
+function toDateKey(val: string | Date | undefined | null): string {
+  if (!val) return "";
+  if (typeof val === "string") return val.split("T")[0];
+  return keyOf(val.getFullYear(), val.getMonth(), val.getDate());
+}
+
 function inRanges(key: string, ranges: DateRange[]) {
-  return ranges.some((r) => key >= r.start && key <= r.end);
+  return ranges.some((r) => {
+    const s = toDateKey(r.start);
+    const e = toDateKey(r.end);
+    return key >= s && key <= e;
+  });
 }
 
 function monthValue(year: number, month: number) {
@@ -100,24 +110,34 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
     return keyOf(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
 
-  // ขอบเขตเดือนที่เลื่อนดูได้ = ช่วง availability ที่เปิดจอง หรือเริ่มต้นจากเดือนปัจจุบันไปข้างหน้า 12 เดือน
+  // ขอบเขตเดือนที่เลื่อนดูได้ = ยึดตามช่วง availability ที่ผู้ให้เช่าเปิดไว้จริง
   const bounds = useMemo(() => {
     const now = new Date();
     const currentMonth = monthValue(now.getFullYear(), now.getMonth());
     if (availability.length === 0) {
-      return { min: currentMonth, max: currentMonth + 11 };
+      return { min: currentMonth, max: currentMonth + 5 };
     }
-    const starts = availability.map((a) => keyToDate(a.start));
-    const ends = availability.map((a) => keyToDate(a.end));
+    const starts = availability.map((a) => keyToDate(toDateKey(a.start)));
+    const ends = availability.map((a) => keyToDate(toDateKey(a.end)));
     const minDate = new Date(Math.min(...starts.map((d) => d.getTime())));
     const maxDate = new Date(Math.max(...ends.map((d) => d.getTime())));
-    return {
-      min: Math.min(currentMonth, monthValue(minDate.getFullYear(), minDate.getMonth())),
-      max: Math.max(currentMonth + 11, monthValue(maxDate.getFullYear(), maxDate.getMonth())),
-    };
+
+    const startMonth = monthValue(minDate.getFullYear(), minDate.getMonth());
+    const endMonth = monthValue(maxDate.getFullYear(), maxDate.getMonth());
+
+    const min = Math.max(currentMonth, startMonth);
+    const max = Math.max(min, endMonth);
+
+    return { min, max };
   }, [availability]);
 
   const [viewMonth, setViewMonth] = useState(bounds.min); // year*12 + month
+
+  // ให้ viewMonth อยู่ใน bounds เสมอเมื่อ bounds เปลี่ยน
+  useEffect(() => {
+    setViewMonth((current) => Math.max(bounds.min, Math.min(current, bounds.max)));
+  }, [bounds]);
+
   const [startKey, setStartKey] = useState<string | null>(null);
   const [endKey, setEndKey] = useState<string | null>(null);
   const [pickupId, setPickupId] = useState<string | null>(
@@ -134,23 +154,21 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
   const isPast = (key: string) => key < todayKey;
   const isBooked = (key: string) => inRanges(key, bookedRanges);
   const isOpen = (key: string) => {
-    if (availability.length === 0) return !isPast(key);
-    return inRanges(key, availability) && !isPast(key);
+    if (isPast(key)) return false;
+    if (availability.length === 0) return true;
+    return inRanges(key, availability);
   };
-  const isSelectable = (key: string) => isOpen(key) && !isBooked(key) && item.status === "available";
+  const isSelectable = (key: string) =>
+    isOpen(key) && !isBooked(key) && item.status === "available";
 
   // ไม่ให้ช่วงคร่อมวันที่ถูกจอง/นอกช่วงเปิดจอง
   function spanIsClear(from: string, to: string) {
-    const start = keyToDate(from);
+    const cur = keyToDate(from);
     const end = keyToDate(to);
-    for (
-      let t = start.getTime();
-      t <= end.getTime();
-      t += 86_400_000
-    ) {
-      const d = new Date(t);
-      const k = keyOf(d.getFullYear(), d.getMonth(), d.getDate());
+    while (cur <= end) {
+      const k = keyOf(cur.getFullYear(), cur.getMonth(), cur.getDate());
       if (!isSelectable(k)) return false;
+      cur.setDate(cur.getDate() + 1);
     }
     return true;
   }
@@ -168,12 +186,17 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
     // มี start แล้ว กำลังเลือก end
     if (key < startKey) {
       setStartKey(key);
+      setEndKey(null);
+      return;
+    }
+    if (key === startKey) {
+      setEndKey(key);
       return;
     }
     if (spanIsClear(startKey, key)) {
       setEndKey(key);
     } else {
-      // ช่วงคร่อมวันที่จองไม่ได้ → เริ่มต้นใหม่ที่วันที่คลิก
+      // ช่วงคร่อมวันที่จองไม่ได้/นอกช่วงเปิดจอง → เริ่มต้นใหม่ที่วันที่คลิก
       setStartKey(key);
       setEndKey(null);
     }
@@ -402,10 +425,10 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
                   let cls =
                     "text-slate-700 hover:bg-sky-50 hover:text-[#1b3554]";
                   if (!open) {
-                    cls = "text-slate-300";
+                    cls = "bg-slate-50/70 text-slate-300 cursor-not-allowed";
                   } else if (booked) {
                     cls =
-                      "bg-rose-50 text-rose-400 line-through decoration-rose-300";
+                      "bg-rose-50 text-rose-400 line-through decoration-rose-300 cursor-not-allowed";
                   } else if (isEndpoint || activeSingle) {
                     cls =
                       "bg-[#1b3554] text-white font-bold shadow-sm shadow-[#1b3554]/20";

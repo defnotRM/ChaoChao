@@ -103,6 +103,43 @@ export async function POST(request: Request) {
       );
     }
 
+    // 2.1) ตรวจสอบขอบเขตวันที่เปิดให้เช่า (Availability)
+    const { data: availList } = await admin
+      .from("availability")
+      .select("start_date, end_date")
+      .eq("item_id", itemId);
+
+    if (availList && availList.length > 0) {
+      const isWithinAvailability = availList.some((a) => {
+        const s = a.start_date ? String(a.start_date).split("T")[0] : "";
+        const e = a.end_date ? String(a.end_date).split("T")[0] : "";
+        return startDate >= s && endDate <= e;
+      });
+
+      if (!isWithinAvailability) {
+        return NextResponse.json(
+          { message: "ช่วงเวลาที่คุณเลือกไม่อยู่ในขอบเขตวันที่ผู้ให้เช่าเปิดให้เช่า" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 2.2) ตรวจสอบการจองซ้ำซ้อนกับ Order อื่นที่ยังใช้งานอยู่
+    const { data: overlappingOrders } = await admin
+      .from("rentalorder")
+      .select("order_id, start_date, end_date")
+      .eq("item_id", itemId)
+      .in("status", ["requested", "awaiting_payment", "paid", "item_sent"])
+      .lte("start_date", endDate)
+      .gte("end_date", startDate);
+
+    if (overlappingOrders && overlappingOrders.length > 0) {
+      return NextResponse.json(
+        { message: "ช่วงเวลาดังกล่าวถูกจองไปแล้ว กรุณาเลือกช่วงเวลาอื่น" },
+        { status: 409 }
+      );
+    }
+
     // 3) ถ้ามี renter details ส่งมา อัปเดตข้อมูลผู้เช่า
     const warnings: string[] = [];
     if (renter) {
