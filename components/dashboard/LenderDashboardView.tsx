@@ -43,6 +43,7 @@ interface IncomingOrder {
   total_paid: number;
   status: string;
   created_at: string;
+  hasPendingPayment?: boolean;
   item?: {
     item_name: string;
   };
@@ -163,7 +164,7 @@ export function LenderDashboardView({ userId }: { userId?: string } = {}) {
     }
   };
 
-  const getOrderStatusBadge = (status: string) => {
+  const getOrderStatusBadge = (status: string, hasPendingPayment = false) => {
     switch (status) {
       case 'requested':
         return {
@@ -172,6 +173,13 @@ export function LenderDashboardView({ userId }: { userId?: string } = {}) {
           dot: 'bg-amber-500',
         };
       case 'awaiting_payment':
+        if (hasPendingPayment) {
+          return {
+            label: 'รอผู้ให้เช่าตรวจการชำระเงิน',
+            className: 'bg-amber-500/15 text-amber-800 border-amber-200',
+            dot: 'bg-amber-500',
+          };
+        }
         return {
           label: 'รอผู้เช่าชำระเงิน',
           className: 'bg-sky-500/15 text-sky-800 border-sky-200',
@@ -295,7 +303,7 @@ export function LenderDashboardView({ userId }: { userId?: string } = {}) {
         ) : (
           <div className="space-y-4">
             {incomingOrders.map((order) => {
-              const badge = getOrderStatusBadge(order.status);
+              const badge = getOrderStatusBadge(order.status, !!order.hasPendingPayment);
               const itemName = order.item?.item_name || 'รายการสินค้า';
               const renterName = order.renter?.username || 'ผู้เช่า';
 

@@ -31,6 +31,7 @@ interface RenterOrder {
   meetup_location?: string;
   return_location?: string;
   created_at: string;
+  hasPendingPayment?: boolean;
   item?: {
     item_id: string;
     item_name: string;
@@ -111,7 +112,7 @@ export function RenterDashboardView({ userId }: { userId?: string } = {}) {
     };
   }, [userId, loadData]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, hasPendingPayment = false) => {
     switch (status) {
       case 'requested':
         return {
@@ -120,6 +121,13 @@ export function RenterDashboardView({ userId }: { userId?: string } = {}) {
           dot: 'bg-amber-500',
         };
       case 'awaiting_payment':
+        if (hasPendingPayment) {
+          return {
+            label: 'รอร้านค้าตรวจการชำระเงิน',
+            className: 'bg-amber-500/15 text-amber-800 border-amber-200',
+            dot: 'bg-amber-500',
+          };
+        }
         return {
           label: 'รอการชำระเงิน',
           className: 'bg-sky-500/15 text-sky-800 border-sky-200',
@@ -259,7 +267,7 @@ export function RenterDashboardView({ userId }: { userId?: string } = {}) {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => {
-              const badge = getStatusBadge(order.status);
+              const badge = getStatusBadge(order.status, !!order.hasPendingPayment);
               const itemName = order.item?.item_name || 'รายการอุปกรณ์';
               const lenderName = order.item?.lender?.username || 'เจ้าของสินค้า';
 

@@ -74,6 +74,10 @@ export async function GET(request: NextRequest) {
             avatar_url,
             firstname,
             lastname
+          ),
+          payment:payment (
+            payment_id,
+            status
           )
         `)
         .in("item_id", itemIds)
@@ -96,21 +100,28 @@ export async function GET(request: NextRequest) {
           }
         });
 
-        incomingOrders = orders.map((o: any) => ({
-          ...o,
-          renter: o.renter
-            ? {
-                username:
-                  o.renter.username ||
-                  `${o.renter.firstname || ""} ${o.renter.lastname || ""}`.trim() ||
-                  "ผู้เช่า",
-                avatarUrl: o.renter.avatar_url
-                  ? `/api/avatar?id=${o.renter.user_id}`
-                  : null,
-                phone: phoneMap.get(o.renter.user_id) || null,
-              }
-            : null,
-        }));
+        incomingOrders = orders.map((o: any) => {
+          const hasPendingPayment = Array.isArray(o.payment)
+            ? o.payment.some((p: any) => p.status === "pending")
+            : false;
+
+          return {
+            ...o,
+            hasPendingPayment,
+            renter: o.renter
+              ? {
+                  username:
+                    o.renter.username ||
+                    `${o.renter.firstname || ""} ${o.renter.lastname || ""}`.trim() ||
+                    "ผู้เช่า",
+                  avatarUrl: o.renter.avatar_url
+                    ? `/api/avatar?id=${o.renter.user_id}`
+                    : null,
+                  phone: phoneMap.get(o.renter.user_id) || null,
+                }
+              : null,
+          };
+        });
       }
     }
 

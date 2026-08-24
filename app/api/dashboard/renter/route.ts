@@ -49,6 +49,10 @@ export async function GET(request: NextRequest) {
             username,
             avatar_url
           )
+        ),
+        payment:payment (
+          payment_id,
+          status
         )
       `)
       .eq("user_id", userId)
@@ -62,7 +66,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const orderList = orders || [];
+    const orderList = (orders || []).map((o: any) => ({
+      ...o,
+      hasPendingPayment: Array.isArray(o.payment)
+        ? o.payment.some((p: any) => p.status === "pending")
+        : false,
+    }));
 
     // 2. คำนวณสรุปสถิติ
     const activeStatuses = [
