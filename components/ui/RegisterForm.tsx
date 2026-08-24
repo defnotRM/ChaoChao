@@ -64,93 +64,24 @@ export default function RegisterForm() {
   return (
     <div className="flex min-h-screen w-full bg-white">
       {/* ฝั่งซ้าย: Branding (แสดงผลเฉพาะจอ Desktop lg ขึ้นไป) */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#000f22] via-[#0b213f] to-[#1b3554] p-12 text-white lg:flex xl:p-16">
-        {/* Background Ambient Glow & Patterns */}
-        <div className="pointer-events-none absolute -left-20 -top-20 h-80 w-80 rounded-full bg-sky-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-teal-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#c0e6fd_1px,transparent_1px)] [background-size:24px_24px] opacity-10" />
-
-        {/* Top: Brand Logo & Tagline */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-400 to-[#c0e6fd] text-[#000f22] shadow-lg shadow-sky-400/20">
+      <div className="relative hidden w-1/2 flex-col items-center justify-center bg-gradient-to-br from-[#000f22] via-[#3f6593] to-[#1b3554] p-12 text-white lg:flex">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm">
             <svg
               viewBox="0 0 24 24"
-              className="h-6 w-6"
+              className="h-8 w-8 text-white"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2.5}
+              strokeWidth={2}
             >
               <path d="M9 3a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3h3a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3" />
               <path d="M15 21a3 3 0 0 0 3-3v-3a3 3 0 0 0-3-3h-3a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h3a3 3 0 0 1 3 3" />
             </svg>
           </div>
-          <div>
-            <span className="text-xl font-black tracking-tight text-white">CHAO CHAO</span>
-            <span className="ml-2 rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#c0e6fd] backdrop-blur-sm">
-              JOIN US
-            </span>
-          </div>
-        </div>
-
-        {/* Middle: Hero Content & Feature Highlights */}
-        <div className="relative z-10 my-auto py-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-3.5 py-1 text-xs font-semibold text-sky-200 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5 text-sky-300" />
-            <span>เริ่มต้นเป็นผู้เช่าหรือผู้ให้เช่าวันนี้</span>
-          </div>
-
-          <h2 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight text-white xl:text-4xl">
-            สร้างรายได้จากอุปกรณ์ <br />
-            <span className="bg-gradient-to-r from-sky-300 via-[#c0e6fd] to-emerald-300 bg-clip-text text-transparent">
-              ครบจบในที่เดียว
-            </span>
-          </h2>
-
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-300">
-            สมัครบัญชีเดียว สามารถเลือกเป็นได้ทั้งผู้เช่าและผู้ให้เช่า พร้อมระบบจัดการคำสั่งเช่าระดับมืออาชีพ
+          <h2 className="text-3xl font-bold">สร้างบัญชีใหม่</h2>
+          <p className="mt-4 text-[#c0e6fd]">
+            เริ่มต้นใช้งานระบบจัดการเช่า/ให้เช่า ของอิเล็กทรอนิกส์
           </p>
-
-          {/* Feature Showcase Cards */}
-          <div className="mt-8 space-y-3 max-w-md">
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-md transition hover:bg-white/10">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-400/20 text-sky-300">
-                <Zap className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">ลงประกาศง่าย ได้เงินทันที</h4>
-                <p className="text-[11px] text-slate-400">กำหนดราคา ค่ามัดจำ และสถานที่นัดรับได้เอง</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-md transition hover:bg-white/10">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/20 text-emerald-300">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">ระบบตรวจสอบสลิปและเงินประกัน</h4>
-                <p className="text-[11px] text-slate-400">มีระบบตรวจสอบสลิปโอนเงินและการันตีความปลอดภัย</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-md transition hover:bg-white/10">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/20 text-amber-300">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white">ระบบแชทและประวัติการเช่า</h4>
-                <p className="text-[11px] text-slate-400">สื่อสารกับคู่สัญญาและติดตามประวัติการทำรายการได้ตลอด</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom: Trust Footer */}
-        <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-slate-400">
-          <span>© 2026 ChaoChao Inc.</span>
-          <span className="flex items-center gap-1.5 text-sky-200">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-            มาตรฐานความปลอดภัยระดับสูง
-          </span>
         </div>
       </div>
 
