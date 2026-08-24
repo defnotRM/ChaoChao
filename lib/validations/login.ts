@@ -3,15 +3,13 @@ import { z } from "zod";
 export const loginSchema = z.object({
   username: z
     .string()
-    .min(1, "กรุณากรอกชื่อผู้ใช้"),
+    .min(1, "กรุณากรอกชื่อผู้ใช้หรืออีเมล"),
 
   password: z
     .string()
     .min(1, "กรุณากรอกรหัสผ่าน"),
 
-  role: z.enum(["renter", "lender"], {
-    message: "กรุณาเลือกประเภทผู้ใช้งาน",
-  }),
+  role: z.enum(["renter", "lender"]).optional(),
 });
 
 export const roleLabels = {

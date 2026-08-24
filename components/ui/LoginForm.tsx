@@ -24,7 +24,8 @@ export default function LoginForm() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      role: "lender",
+      username: "",
+      password: "",
     },
   });
 
@@ -195,42 +196,7 @@ export default function LoginForm() {
               )}
             </div>
 
-            {/* Role - segmented toggle */}
-            <div>
-              <p className="mb-1.5 text-sm font-medium text-[#1b3554]">
-                ประเภทผู้ใช้งาน
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="relative cursor-pointer">
-                  <input
-                    type="radio"
-                    value="renter"
-                    className="peer sr-only"
-                    {...register("role")}
-                  />
-                  <div className="rounded-xl border-2 border-[#c0e6fd] py-3 text-center text-sm font-medium text-[#3f6593] transition hover:border-[#3f6593] peer-checked:border-[#1b3554] peer-checked:bg-[#1b3554] peer-checked:text-white">
-                    ผู้เช่า
-                  </div>
-                </label>
-                <label className="relative cursor-pointer">
-                  <input
-                    type="radio"
-                    value="lender"
-                    className="peer sr-only"
-                    {...register("role")}
-                  />
-                  <div className="rounded-xl border-2 border-[#c0e6fd] py-3 text-center text-sm font-medium text-[#3f6593] transition hover:border-[#3f6593] peer-checked:border-[#1b3554] peer-checked:bg-[#1b3554] peer-checked:text-white">
-                    ผู้ให้เช่า
-                  </div>
-                </label>
-              </div>
-              {errors.role && (
-                <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-red-600">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  {errors.role.message}
-                </p>
-              )}
-            </div>
+
 
             {/* Submit */}
             <button

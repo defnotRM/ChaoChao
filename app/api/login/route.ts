@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Verify user has the requested role
+    // 3. Resolve user roles from user_role_assignment
     const { data: userRoles, error: roleError } = await admin
       .from("user_role_assignment")
       .select("role:role_id ( role_type )")
@@ -52,18 +52,17 @@ export async function POST(request: Request) {
       .map((item: any) => item.role?.role_type)
       .filter(Boolean);
 
-    const hasRequestedRole =
-      assignedRoles.includes(role) || assignedRoles.includes("admin");
-
-    if (!hasRequestedRole) {
-      const roleName = role === "lender" ? "ผู้ให้เช่า" : "ผู้เช่า";
-      return NextResponse.json(
-        {
-          message: `บัญชีนี้ไม่ได้รับสิทธิ์การใช้งานในบทบาท ${roleName}`,
-        },
-        { status: 403 }
-      );
-    }
+    // Auto-detect role
+    const resolvedRole =
+      role && assignedRoles.includes(role)
+        ? role
+        : assignedRoles.includes("admin")
+        ? "admin"
+        : assignedRoles.includes("lender")
+        ? "lender"
+        : assignedRoles.includes("renter")
+        ? "renter"
+        : "renter";
 
     // 4. Authenticate using Supabase Auth (stores session in cookies via @supabase/ssr)
     const supabase = await createServerClient();
@@ -81,11 +80,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Determine redirection path
-    const redirectTo =
-      role === "lender"
-        ? "/lender/mydashboard"
-        : "/renter/mydashboard";
+    // 5. Determine redirection path (เข้าสู่หน้าแดชบอร์ดหลักทันที)
+    const redirectTo = "/dashboard";
 
     const response = NextResponse.json(
       {
@@ -93,14 +89,15 @@ export async function POST(request: Request) {
         user: {
           id: profile.user_id,
           username: profile.username,
-          role,
+          role: resolvedRole,
+          roles: assignedRoles,
         },
         redirectTo,
       },
       { status: 200 }
     );
 
-    response.cookies.set("chaochao_active_role", role, {
+    response.cookies.set("chaochao_active_role", resolvedRole, {
       path: "/",
       httpOnly: false,
       sameSite: "lax",
