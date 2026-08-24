@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { createBrowserClient } from '@/lib/supabase/client';
 import {
   Package,
   Clock,
@@ -61,14 +62,17 @@ export function RenterDashboardView({ userId }: { userId?: string } = {}) {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
+  const loadData = useCallback(
+    async (silent = false) => {
       try {
-        setLoading(true);
+        if (!silent) setLoading(true);
         const url = userId
           ? `/api/dashboard/renter?userId=${encodeURIComponent(userId)}`
           : '/api/dashboard/renter';
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          cache: 'no-store',
+          headers: { Pragma: 'no-cache' },
+        });
         if (res.ok) {
           const data = await res.json();
           setOrders(data.orders || []);
@@ -77,11 +81,35 @@ export function RenterDashboardView({ userId }: { userId?: string } = {}) {
       } catch (err) {
         console.error('Failed to load renter dashboard data:', err);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
-    }
-    loadData();
-  }, [userId]);
+    },
+    [userId]
+  );
+
+  useEffect(() => {
+    loadData(false);
+
+    const supabase = createBrowserClient();
+    const channel = supabase
+      .channel(`renter-dashboard-realtime-${userId || 'default'}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rentalorder' }, () => {
+        loadData(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payment' }, () => {
+        loadData(true);
+      })
+      .subscribe();
+
+    const interval = setInterval(() => {
+      loadData(true);
+    }, 2000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [userId, loadData]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
