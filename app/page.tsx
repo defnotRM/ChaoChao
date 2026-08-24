@@ -228,6 +228,16 @@ export default async function Home() {
                   String(product.categoryId) === String(category.category_id),
               ).length;
 
+              const iconName = category.category_name.includes("กล้อง")
+                ? "camera"
+                : category.category_name.includes("เสียง")
+                ? "speaker"
+                : category.category_name.includes("แคมป์")
+                ? "tent"
+                : category.category_name.includes("ช่าง")
+                ? "wrench"
+                : popularCategoryIcons[index % popularCategoryIcons.length];
+
               return (
                 <Link
                   key={category.category_id}
@@ -236,7 +246,7 @@ export default async function Home() {
                 >
                   <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition group-hover:bg-sky-100">
                     <CategoryIcon
-                      name={popularCategoryIcons[index]}
+                      name={iconName}
                       className="h-5 w-5"
                     />
                   </span>
