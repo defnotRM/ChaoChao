@@ -18,7 +18,11 @@ const updateProfileSchema = z.object({
   avatarUrl: z.string().optional().nullable(),
   bannerUrl: z.string().optional().nullable(),
   phones: z
-    .array(z.string())
+    .array(
+      z
+        .string()
+        .max(10, "เบอร์โทรศัพท์ต้องไม่เกิน 10 หลัก")
+    )
     .max(2, "สามารถใส่เบอร์โทรศัพท์ได้สูงสุด 2 เบอร์")
     .optional()
     .nullable(),
@@ -194,8 +198,8 @@ export async function PATCH(request: Request) {
       const cleanPhones = Array.from(
         new Set(
           phones
-            .map((p) => p.trim())
-            .filter((p) => p.length >= 9 && p.length <= 15)
+            .map((p) => p.replace(/\D/g, "").slice(0, 10))
+            .filter((p) => p.length >= 9 && p.length <= 10)
         )
       ).slice(0, 2);
 

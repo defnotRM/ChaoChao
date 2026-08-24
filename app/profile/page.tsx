@@ -276,7 +276,24 @@ export default function ProfilePage() {
       return;
     }
 
-    const phones = [phone1.trim(), phone2.trim()].filter(Boolean);
+    const p1 = phone1.trim().replace(/\D/g, "");
+    const p2 = phone2.trim().replace(/\D/g, "");
+
+    if (phone1.trim()) {
+      if (p1.length < 9 || p1.length > 10) {
+        setGeneralError("เบอร์โทรศัพท์ 1 ต้องมีความยาว 9 - 10 หลัก (เฉพาะตัวเลข)");
+        return;
+      }
+    }
+
+    if (phone2.trim()) {
+      if (p2.length < 9 || p2.length > 10) {
+        setGeneralError("เบอร์โทรศัพท์ 2 ต้องมีความยาว 9 - 10 หลัก (เฉพาะตัวเลข)");
+        return;
+      }
+    }
+
+    const phones = [p1, p2].filter(Boolean);
 
     setSavingGeneral(true);
 
@@ -637,14 +654,16 @@ export default function ProfilePage() {
                     id="phone1"
                     type="tel"
                     value={phone1}
-                    onChange={(e) => setPhone1(e.target.value)}
+                    onChange={(e) =>
+                      setPhone1(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    }
                     placeholder="เช่น 0812345678"
-                    maxLength={15}
+                    maxLength={10}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-3 pl-10 pr-4 text-sm text-[#000f22] outline-none transition focus:border-[#3f6593] focus:bg-white focus:ring-2 focus:ring-[#c0e6fd]/50"
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  ใช้สำหรับให้คู่สัญญาติดต่อนัดหมาย
+                  เบอร์ติดต่อหลัก (ความยาว 9-10 หลัก)
                 </p>
               </div>
 
@@ -661,14 +680,16 @@ export default function ProfilePage() {
                     id="phone2"
                     type="tel"
                     value={phone2}
-                    onChange={(e) => setPhone2(e.target.value)}
+                    onChange={(e) =>
+                      setPhone2(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    }
                     placeholder="เช่น 0898765432 (ถ้ามี)"
-                    maxLength={15}
+                    maxLength={10}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-3 pl-10 pr-4 text-sm text-[#000f22] outline-none transition focus:border-[#3f6593] focus:bg-white focus:ring-2 focus:ring-[#c0e6fd]/50"
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  เบอร์ติดต่อสำรอง (เลือกใส่หรือไม่ใส่ก็ได้)
+                  เบอร์ติดต่อสำรอง (ความยาว 9-10 หลัก)
                 </p>
               </div>
             </div>
