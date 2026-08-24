@@ -50,7 +50,7 @@ export default async function LenderOrderDetailPage({
       .maybeSingle(),
     admin
       .from("payment")
-      .select("payment_id, amount, status")
+      .select("payment_id, amount, status, slip_image_url, date")
       .eq("order_id", orderId),
   ]);
 
@@ -112,6 +112,8 @@ export default async function LenderOrderDetailPage({
       payment_id: p.payment_id,
       amount: Number(p.amount) || 0,
       status: p.status,
+      slip_image_url: p.slip_image_url || null,
+      date: p.date,
     })),
   };
 

@@ -16,6 +16,7 @@ import {
   Clock3,
   CreditCard,
   DollarSign,
+  Image as ImageIcon,
   Loader2,
   Mail,
   MapPin,
@@ -66,6 +67,8 @@ export interface LendOrderData {
     payment_id: string;
     amount: number;
     status: string;
+    slip_image_url?: string | null;
+    date?: string;
   }>;
 }
 
@@ -175,6 +178,35 @@ export default function LendOrderDetailClient({
   const step = statusStep(currentStatus, hasPending);
   const isCancelled = step === -1;
   const chip = STATUS_CHIP[currentStatus] ?? { label: currentStatus, cls: "bg-slate-100 text-slate-600" };
+
+  async function handleApprovePayment() {
+    try {
+      setIsUpdating(true);
+      setErrorMsg(null);
+      setSuccessMsg(null);
+
+      const res = await fetch("/api/payments/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.order_id }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        setErrorMsg(result.message || "ไม่สามารถยืนยันการชำระเงินได้");
+        return;
+      }
+
+      setCurrentStatus("paid");
+      setSuccessMsg("ตรวจสอบและยืนยันการชำระเงินเรียบร้อยแล้ว เข้าสู่ขั้นตอนส่งมอบอุปกรณ์");
+      router.refresh();
+    } catch (err) {
+      console.error("Error approving payment:", err);
+      setErrorMsg("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
 
   async function handleUpdateStatus(newStatus: "awaiting_payment" | "rejected") {
     try {
@@ -506,15 +538,56 @@ export default function LendOrderDetailClient({
                   </button>
                 </div>
               ) : currentStatus === "awaiting_payment" ? (
-                <div className="rounded-2xl bg-sky-50 p-4 border border-sky-200 space-y-2">
-                  <div className="flex items-center gap-2 text-sky-800 font-bold text-sm">
-                    <Clock className="h-4 w-4 text-sky-600" />
-                    <span>อนุมัติแล้ว · รอผู้เช่าชำระเงิน</span>
+                hasPending ? (
+                  <div className="space-y-3">
+                    <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200">
+                      <p className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                        <Clock3 className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>ผู้เช่าอัปโหลดสลิปแล้ว (ยอด {thb.format(totalPaid)})</span>
+                      </p>
+                      <p className="text-[11px] text-amber-700 mt-1">
+                        กรุณาตรวจสอบยอดเงินในบัญชีธนาคาร จากนั้นกดปุ่มยืนยันการชำระเงิน
+                      </p>
+                      {payments.find((p) => p.status === "pending")?.slip_image_url && (
+                        <div className="mt-2">
+                          <a
+                            href={payments.find((p) => p.status === "pending")?.slip_image_url || "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 underline"
+                          >
+                            <ImageIcon className="h-3.5 w-3.5" />
+                            <span>คลิกดูรูปสลิปหลักฐาน</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleApprovePayment}
+                      disabled={isUpdating}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-700/20 transition duration-200 hover:from-emerald-700 hover:to-teal-800 active:scale-95 disabled:opacity-50"
+                    >
+                      {isUpdating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+                      <span>ตรวจสอบและยืนยันการชำระเงิน</span>
+                    </button>
                   </div>
-                  <p className="text-xs text-sky-700">
-                    ระบบเปิดให้ผู้เช่าโอนเงินและอัปโหลดสลิปชำระเงินแล้ว เมื่อชำระเรียบร้อยสถานะจะเปลี่ยนเป็น “ชำระเงินแล้ว”
-                  </p>
-                </div>
+                ) : (
+                  <div className="rounded-2xl bg-sky-50 p-4 border border-sky-200 space-y-2">
+                    <div className="flex items-center gap-2 text-sky-800 font-bold text-sm">
+                      <Clock className="h-4 w-4 text-sky-600" />
+                      <span>อนุมัติแล้ว · รอผู้เช่าชำระเงิน</span>
+                    </div>
+                    <p className="text-xs text-sky-700">
+                      ระบบเปิดให้ผู้เช่าโอนเงินและอัปโหลดสลิปแล้ว เมื่อผู้เช่าโอนแล้วคุณจะสามารถกดตรวจรับการชำระเงินได้ที่นี่
+                    </p>
+                  </div>
+                )
               ) : currentStatus === "paid" ? (
                 <div className="space-y-3">
                   <div className="rounded-2xl bg-emerald-50 p-4 border border-emerald-200">
