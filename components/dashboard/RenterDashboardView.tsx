@@ -216,7 +216,7 @@ export function RenterDashboardView() {
             description="ค้นหาอุปกรณ์ที่คุณต้องการใช้งาน ไม่ว่าจะเป็นกล้อง ไฟสตูดิโอ หรืออุปกรณ์แคมป์ปิ้ง"
             action={
               <Link
-                href="/renter/hireproduct"
+                href="/products"
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-[#000f22] hover:to-[#1b3554]"
               >
                 <Sparkles className="h-4 w-4" />

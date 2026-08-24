@@ -6,14 +6,14 @@ const footerLinks = [
     title: "บริษัท",
     links: [
       { label: "เกี่ยวกับเรา", href: "/" },
-      { label: "ค้นหาอุปกรณ์", href: "/renter/hireproduct" },
+      { label: "ค้นหาอุปกรณ์", href: "/products" },
       { label: "กล่องข้อความ", href: "/chat" },
     ],
   },
   {
     title: "บริการ",
     links: [
-      { label: "ค้นหาอุปกรณ์", href: "/renter/hireproduct" },
+      { label: "ค้นหาอุปกรณ์", href: "/products" },
       { label: "สำหรับผู้ให้เช่า", href: "/lender" },
       { label: "สำหรับผู้เช่า", href: "/renter" },
     ],

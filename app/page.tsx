@@ -33,7 +33,7 @@ const gettingStartedOptions = [
     title: "ผู้เช่า",
     description: "ค้นหาและเช่าอุปกรณ์ที่ต้องการได้อย่างมั่นใจ",
     icon: Search,
-    href: "/renter/hireproduct",
+    href: "/products",
     action: "ค้นหาอุปกรณ์",
     features: [
       "เลือกสินค้าจากหลากหลายหมวดหมู่",
@@ -228,7 +228,7 @@ export default async function Home() {
             </p>
 
             <Link
-              href="/renter/hireproduct"
+              href="/products"
               className="mt-6 inline-flex h-11 items-center rounded-full bg-[#1b3554] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#000f22] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
             >
               Start Now
@@ -241,7 +241,7 @@ export default async function Home() {
             title="หมวดหมู่ยอดนิยม"
             action={
               <Link
-                href="/renter/hireproduct"
+                href="/products"
                 className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline"
               >
                 ดูทั้งหมด <ArrowRight className="h-4 w-4" />
@@ -263,7 +263,7 @@ export default async function Home() {
               return (
                 <Link
                   key={category.category_id}
-                  href="/renter/hireproduct"
+                  href="/products"
                   className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
                 >
                   <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition group-hover:bg-sky-100">
@@ -289,7 +289,7 @@ export default async function Home() {
             title="อุปกรณ์แนะนำ"
             action={
               <Link
-                href="/renter/hireproduct"
+                href="/products"
                 className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline"
               >
                 ดูทั้งหมด <ArrowRight className="h-4 w-4" />

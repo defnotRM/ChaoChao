@@ -88,7 +88,7 @@ export function DashboardHeader({
             </Link>
           ) : (
             <Link
-              href="/renter/hireproduct"
+              href="/products"
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:from-[#000f22] hover:to-[#1b3554] active:scale-95"
             >
               <Search className="h-4 w-4" />
