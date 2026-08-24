@@ -280,15 +280,15 @@ export default function ProfilePage() {
     const p2 = phone2.trim().replace(/\D/g, "");
 
     if (phone1.trim()) {
-      if (p1.length < 9 || p1.length > 10) {
-        setGeneralError("เบอร์โทรศัพท์ 1 ต้องมีความยาว 9 - 10 หลัก (เฉพาะตัวเลข)");
+      if (p1.length !== 10) {
+        setGeneralError("เบอร์โทรศัพท์ 1 ต้องมีความยาว 10 หลักพอดี (เฉพาะตัวเลข เช่น 0812345678)");
         return;
       }
     }
 
     if (phone2.trim()) {
-      if (p2.length < 9 || p2.length > 10) {
-        setGeneralError("เบอร์โทรศัพท์ 2 ต้องมีความยาว 9 - 10 หลัก (เฉพาะตัวเลข)");
+      if (p2.length !== 10) {
+        setGeneralError("เบอร์โทรศัพท์ 2 ต้องมีความยาว 10 หลักพอดี (เฉพาะตัวเลข เช่น 0898765432)");
         return;
       }
     }
@@ -663,7 +663,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  เบอร์ติดต่อหลัก (ความยาว 9-10 หลัก)
+                  เบอร์ติดต่อหลัก (ความยาว 10 หลัก)
                 </p>
               </div>
 
@@ -689,7 +689,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  เบอร์ติดต่อสำรอง (ความยาว 9-10 หลัก)
+                  เบอร์ติดต่อสำรอง (ความยาว 10 หลัก)
                 </p>
               </div>
             </div>

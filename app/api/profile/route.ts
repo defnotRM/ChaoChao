@@ -199,7 +199,7 @@ export async function PATCH(request: Request) {
         new Set(
           phones
             .map((p) => p.replace(/\D/g, "").slice(0, 10))
-            .filter((p) => p.length >= 9 && p.length <= 10)
+            .filter((p) => p.length === 10)
         )
       ).slice(0, 2);
 
