@@ -58,10 +58,33 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const admin = createAdminClient();
+
+    if (user) {
+      const { data: userRoles } = await admin
+        .from("user_role_assignment")
+        .select("role:role_id ( role_type )")
+        .eq("user_id", user.id);
+
+      const roles = (userRoles || [])
+        .map((r: any) => r.role?.role_type)
+        .filter(Boolean);
+
+      const isLenderOnly =
+        roles.includes("lender") &&
+        !roles.includes("renter") &&
+        !roles.includes("admin");
+
+      if (isLenderOnly) {
+        return NextResponse.json(
+          { message: "บัญชีของคุณเป็นผู้ให้เช่าเท่านั้น ไม่สามารถส่งคำขอเช่าได้" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Default to romanlnw68 if not logged in
     const renterUserId = user?.id || "8a88d60a-e2cf-43a6-b4ea-baa9347bfee1";
-
-    const admin = createAdminClient();
 
     // 2) ตรวจสินค้ามีจริงและพร้อมให้เช่า
     const { data: item, error: itemError } = await admin

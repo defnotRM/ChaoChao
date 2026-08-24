@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  AlertTriangle,
   BadgeCheck,
   CalendarDays,
   Heart,
@@ -43,6 +44,33 @@ export default function BookingWidget({
 }: BookingWidgetProps) {
   // "บันทึก" ยังไม่มีตาราง favorites ใน DB → เก็บสถานะเฉพาะฝั่ง client
   const [saved, setSaved] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    role: string;
+    roles: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data.user || null);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    loadUser();
+  }, []);
+
+  const roles = currentUser?.roles || (currentUser?.role ? [currentUser.role] : []);
+  const isLenderOnly =
+    currentUser !== null &&
+    roles.includes("lender") &&
+    !roles.includes("renter") &&
+    !roles.includes("admin");
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
@@ -68,17 +96,37 @@ export default function BookingWidget({
       </p>
 
       {/* ปุ่มหลัก → หน้าเลือกวันเช่า */}
-      <Link
-        href={`/product/${productId}/rent`}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98]"
-      >
-        <CalendarDays className="h-5 w-5" />
-        <span>เลือกวันที่เช่า →</span>
-      </Link>
-
-      <p className="mt-2.5 text-center text-xs leading-relaxed text-slate-400">
-        เลือกช่วงวันและจุดนัดรับ–คืนตัวจริง พร้อมราคาสุทธิ ในขั้นตอนถัดไป
-      </p>
+      {isLenderOnly ? (
+        <div className="mt-4 space-y-2">
+          <button
+            type="button"
+            disabled
+            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 py-3.5 text-sm font-semibold text-slate-400 opacity-80 shadow-none"
+            title="บัญชีของคุณเป็นผู้ให้เช่าเท่านั้น ไม่สามารถกดเช่าสินค้าได้"
+          >
+            <CalendarDays className="h-5 w-5 text-slate-400" />
+            <span>ไม่สามารถเช่าได้ (บัญชีผู้ให้เช่า)</span>
+          </button>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-center text-xs text-amber-800">
+            <p className="font-medium">
+              บัญชีของคุณเป็นผู้ให้เช่าเท่านั้น หากต้องการเช่าอุปกรณ์ กรุณาเพิ่มบทบาทผู้เช่าหรือสลับบัญชี
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Link
+            href={`/product/${productId}/rent`}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98]"
+          >
+            <CalendarDays className="h-5 w-5" />
+            <span>เลือกวันที่เช่า →</span>
+          </Link>
+          <p className="mt-2.5 text-center text-xs leading-relaxed text-slate-400">
+            เลือกช่วงวันและจุดนัดรับ–คืนตัวจริง พร้อมราคาสุทธิ ในขั้นตอนถัดไป
+          </p>
+        </>
+      )}
 
       {/* การ์ดผู้ปล่อยเช่า */}
       <div className="mt-5 flex items-center gap-3 rounded-2xl border border-slate-200 p-3">

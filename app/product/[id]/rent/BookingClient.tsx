@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -205,8 +205,35 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    role: string;
+    roles: string[];
+  } | null>(null);
 
-  const canContinue = Boolean(startKey && endKey && pickupId && returnId);
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data.user || null);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    loadUser();
+  }, []);
+
+  const roles = currentUser?.roles || (currentUser?.role ? [currentUser.role] : []);
+  const isLenderOnly =
+    currentUser !== null &&
+    roles.includes("lender") &&
+    !roles.includes("renter") &&
+    !roles.includes("admin");
+
+  const canContinue = Boolean(startKey && endKey && pickupId && returnId && !isLenderOnly);
 
   async function handleSubmitBooking() {
     if (!canContinue || !startKey || !endKey) return;
@@ -618,19 +645,38 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={handleSubmitBooking}
-                disabled={!canContinue || isSubmitting}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-                <span>{isSubmitting ? "กำลังส่งคำขอเช่า..." : "ส่งคำขอเช่า"}</span>
-              </button>
+              {isLenderOnly ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 py-3.5 text-sm font-semibold text-slate-400 opacity-80 shadow-none"
+                    title="บัญชีของคุณเป็นผู้ให้เช่าเท่านั้น ไม่สามารถส่งคำขอเช่าได้"
+                  >
+                    <Send className="h-5 w-5 text-slate-400" />
+                    <span>ไม่สามารถส่งคำขอได้ (บัญชีผู้ให้เช่า)</span>
+                  </button>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-800">
+                    <p className="font-medium">
+                      บัญชีของคุณเป็นผู้ให้เช่าเท่านั้น หากต้องการเช่าอุปกรณ์ กรุณาเพิ่มบทบาทผู้เช่าหรือสลับบัญชี
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitBooking}
+                  disabled={!canContinue || isSubmitting}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
+                  <span>{isSubmitting ? "กำลังส่งคำขอเช่า..." : "ส่งคำขอเช่า"}</span>
+                </button>
+              )}
 
               {submitError && (
                 <div className="mt-3 rounded-xl bg-rose-50 p-3 text-xs text-rose-600">
@@ -638,11 +684,13 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
                 </div>
               )}
 
-              <p className="mt-2.5 text-center text-xs text-slate-400">
-                เมื่อส่งคำขอแล้ว คุณสามารถติดตามและดำเนินการต่อในแดชบอร์ด
-              </p>
+              {!isLenderOnly && (
+                <p className="mt-2.5 text-center text-xs text-slate-400">
+                  เมื่อส่งคำขอแล้ว คุณสามารถติดตามและดำเนินการต่อในแดชบอร์ด
+                </p>
+              )}
 
-              {!canContinue && (startKey || pickupId) && (
+              {!isLenderOnly && !canContinue && (startKey || pickupId) && (
                 <p className="mt-2 text-center text-xs text-amber-600">
                   {!endKey
                     ? "กรุณาเลือกช่วงวันที่เช่าให้ครบ"
