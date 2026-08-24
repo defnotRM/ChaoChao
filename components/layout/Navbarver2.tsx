@@ -71,7 +71,20 @@ export default function Navbarver2() {
         {/* เมนูด้านขวาของ Laptop/Desktop */}
         <div className="flex shrink-0 items-center gap-1">
           <Link
+<<<<<<< Updated upstream
             href="/login"
+=======
+            href="/users"
+            title="ค้นหาผู้ใช้งาน (Community)"
+            aria-label="ค้นหาผู้ใช้งาน"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
+          >
+            <Globe aria-hidden="true" className="h-6 w-6" />
+          </Link>
+
+          <Link
+            href={user ? "/renter/saved" : "/login?redirect=/renter/saved"}
+>>>>>>> Stashed changes
             aria-label="รายการโปรด"
             className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
           >
@@ -128,7 +141,11 @@ export default function Navbarver2() {
               <MessageCircle aria-hidden="true" className="h-6 w-6" />
             </Link>
             <Link
+<<<<<<< Updated upstream
               href="/login"
+=======
+              href={user ? "/renter/saved" : "/login?redirect=/renter/saved"}
+>>>>>>> Stashed changes
               className="flex h-11 w-11 items-center justify-center rounded-full text-[#17326b] transition hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600"
             >
               <Heart aria-hidden="true" className="h-6 w-6" />

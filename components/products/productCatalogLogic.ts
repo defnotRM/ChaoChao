@@ -10,7 +10,7 @@ export type ProductFilterState = {
   selectedCategoryIds: string[];
   minPrice: string;
   maxPrice: string;
-  minRating: number;
+  ratingBand: number;
   startDate: string;
   endDate: string;
   onlyAvailable: boolean;
@@ -19,7 +19,7 @@ export type ProductFilterState = {
 export type ProductFilterCriteria = {
   minPrice: number | null;
   maxPrice: number | null;
-  minRating: number;
+  ratingBand: number;
   startDate: string;
   endDate: string;
   onlyAvailable: boolean;
@@ -37,7 +37,7 @@ export function createInitialProductFilters(): ProductFilterState {
     selectedCategoryIds: [],
     minPrice: "",
     maxPrice: "",
-    minRating: 0,
+    ratingBand: 0,
     startDate: "",
     endDate: "",
     onlyAvailable: true,
@@ -57,13 +57,15 @@ export function createFilterCriteria(filters: ProductFilterState) {
       filters.endDate &&
       filters.startDate > filters.endDate,
   );
+  const hasCompleteDateRange = Boolean(filters.startDate && filters.endDate);
 
   const criteria: ProductFilterCriteria = {
     minPrice,
     maxPrice,
-    minRating: filters.minRating,
-    startDate: filters.startDate,
-    endDate: filters.endDate,
+    ratingBand: filters.ratingBand,
+    // เริ่มกรองวันเมื่อเลือกครบทั้งวันเริ่มและวันคืนแล้วเท่านั้น
+    startDate: hasCompleteDateRange ? filters.startDate : "",
+    endDate: hasCompleteDateRange ? filters.endDate : "",
     onlyAvailable: filters.onlyAvailable,
     hasInvalidRange: invalidPriceRange || invalidDateRange,
   };
@@ -81,25 +83,23 @@ export function matchesNonCategoryFilters(
     criteria.minPrice === null || product.pricePerDay >= criteria.minPrice;
   const matchesMaxPrice =
     criteria.maxPrice === null || product.pricePerDay <= criteria.maxPrice;
-  const matchesRating = product.rating >= criteria.minRating;
+  // 0 หมายถึงทุกคะแนน ส่วน 1-5 หมายถึงช่วงคะแนนของเลขนั้น
+  // เช่น ratingBand 2 จะแสดงเฉพาะ 2.0 ถึง 2.9 (ไม่รวม 3.0)
+  const matchesRating =
+    criteria.ratingBand === 0 ||
+    (product.rating >= criteria.ratingBand &&
+      product.rating < criteria.ratingBand + 1);
   const matchesStatus =
     !criteria.onlyAvailable || product.status === "available";
 
-  // สินค้าต้องมีช่วง availability อย่างน้อยหนึ่งช่วงที่ครอบคลุมวันเริ่มและวันคืนทั้งหมด
+  // วันเริ่มและวันคืนต้องอยู่ภายใน availability ช่วงเดียวกัน โดยรวมวันขอบเขตทั้งสองวัน
   const matchesDate =
     (!criteria.startDate && !criteria.endDate) ||
-    product.availability.some((range) => {
-      const containsStart =
-        !criteria.startDate ||
-        (range.startDate <= criteria.startDate &&
-          range.endDate >= criteria.startDate);
-      const containsEnd =
-        !criteria.endDate ||
-        (range.startDate <= criteria.endDate &&
-          range.endDate >= criteria.endDate);
-
-      return containsStart && containsEnd;
-    });
+    product.availability.some(
+      (range) =>
+        range.startDate <= criteria.startDate &&
+        range.endDate >= criteria.endDate,
+    );
 
   return (
     matchesMinPrice &&

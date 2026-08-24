@@ -10,6 +10,8 @@ import { PlaceholderImage, Rating, StatusChip } from "./designSystem";
 type ProductCardProps = {
   listing: Product;
   layout?: "grid" | "list";
+  initialSaved?: boolean;
+  onSavedChange?: (saved: boolean) => void;
 };
 
 const thbFormatter = new Intl.NumberFormat("th-TH", {
@@ -42,13 +44,19 @@ function ListingStatus({ status }: { status: Product["status"] }) {
 export function ProductCard({
   listing,
   layout = "grid",
+  initialSaved = false,
+  onSavedChange,
 }: ProductCardProps) {
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(initialSaved);
 
   const saveButton = (
     <button
       type="button"
-      onClick={() => setSaved((current) => !current)}
+      onClick={() => {
+        const nextSaved = !saved;
+        setSaved(nextSaved);
+        onSavedChange?.(nextSaved);
+      }}
       aria-label={saved ? `เลิกบันทึก ${listing.title}` : `บันทึก ${listing.title}`}
       aria-pressed={saved}
       className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-sm backdrop-blur transition hover:scale-105 hover:bg-white hover:text-rose-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"

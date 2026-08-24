@@ -1,9 +1,10 @@
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Star } from "lucide-react";
 
 import type {
   ProductCategoryOption,
   ProductFilterState,
 } from "./productCatalogLogic";
+import DateRangeCalendar from "./DateRangeCalendar";
 
 type ProductFiltersProps = {
   categories: ProductCategoryOption[];
@@ -14,6 +15,15 @@ type ProductFiltersProps = {
   onToggleCategory: (categoryId: string) => void;
   onReset: () => void;
 };
+
+const ratingOptions = [
+  { value: 0, label: "ทั้งหมด", description: "ทุกคะแนน" },
+  { value: 1, label: "1+", description: "1.0–1.9 ดาว" },
+  { value: 2, label: "2+", description: "2.0–2.9 ดาว" },
+  { value: 3, label: "3+", description: "3.0–3.9 ดาว" },
+  { value: 4, label: "4+", description: "4.0–4.9 ดาว" },
+  { value: 5, label: "5", description: "5.0 ดาว" },
+] as const;
 
 export default function ProductFilters({
   categories,
@@ -100,59 +110,64 @@ export default function ProductFilters({
       </fieldset>
 
       <fieldset className="border-t border-slate-100 pt-2">
-        <legend className="mb-1 text-sm font-semibold leading-none text-slate-800">
-          คะแนนรีวิว
+        <legend className="mb-2 text-sm font-semibold leading-none text-slate-800">
+          ช่วงคะแนนรีวิว
         </legend>
-        <select
-          value={filters.minRating}
-          onChange={(event) =>
-            onChange({ minRating: Number(event.target.value) })
-          }
-          aria-label="คะแนนรีวิวขั้นต่ำ"
-          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
-        >
-          <option value={0}>ทุกคะแนน</option>
-          <option value={4.5}>4.5 ดาวขึ้นไป</option>
-          <option value={4}>4 ดาวขึ้นไป</option>
-          <option value={3}>3 ดาวขึ้นไป</option>
-        </select>
+        <div className="flex flex-wrap gap-2">
+          {ratingOptions.map((option) => {
+            const isSelected = filters.ratingBand === option.value;
+
+            return (
+              <label
+                key={option.value}
+                title={option.description}
+                className={`relative inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition focus-within:ring-2 focus-within:ring-sky-200 focus-within:ring-offset-1 ${
+                  isSelected
+                    ? "border-[#1b3554] bg-[#1b3554] text-white shadow-sm"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300 hover:bg-sky-50"
+                }`}
+              >
+                {option.value > 0 && (
+                  <Star
+                    aria-hidden="true"
+                    className={`h-4 w-4 fill-current ${
+                      isSelected ? "text-amber-300" : "text-amber-500"
+                    }`}
+                  />
+                )}
+                <span>{option.label}</span>
+
+                <input
+                  type="radio"
+                  name="rating-band"
+                  value={option.value}
+                  checked={isSelected}
+                  aria-label={`${option.label} (${option.description})`}
+                  onChange={() => onChange({ ratingBand: option.value })}
+                  className="sr-only"
+                />
+              </label>
+            );
+          })}
+        </div>
       </fieldset>
 
       <fieldset className="border-t border-slate-100 pt-2">
         <legend className="mb-1 text-sm font-semibold leading-none text-slate-800">
           วันที่ต้องการเช่า
         </legend>
-        <div className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-xs text-slate-500">
-              วันที่เริ่มเช่า
-            </span>
-            <input
-              type="date"
-              value={filters.startDate}
-              max={filters.endDate || undefined}
-              onChange={(event) => onChange({ startDate: event.target.value })}
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs text-slate-500">วันที่คืน</span>
-            <input
-              type="date"
-              value={filters.endDate}
-              min={filters.startDate || undefined}
-              onChange={(event) => onChange({ endDate: event.target.value })}
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
-            />
-          </label>
-        </div>
+        <DateRangeCalendar
+          startDate={filters.startDate}
+          endDate={filters.endDate}
+          onChange={(range) => onChange(range)}
+        />
         {invalidDateRange && (
           <p className="mt-2 text-xs text-rose-600">
             วันที่คืนต้องไม่อยู่ก่อนวันที่เริ่มเช่า
           </p>
         )}
         <p className="mt-2 text-xs leading-relaxed text-slate-400">
-          สินค้าต้องว่างครบตลอดช่วงวันที่เลือก
+          สินค้าต้องว่างรวมทั้งวันเริ่มและวันคืน
         </p>
       </fieldset>
 
