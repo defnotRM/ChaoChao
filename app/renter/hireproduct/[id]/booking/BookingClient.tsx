@@ -231,7 +231,7 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
     }
     setDraft(next);
     // ไหลต่อไป Step 2 "ส่งคำขอเช่า"
-    router.push(`/renter/hireproduct/${item.id}/request`);
+    router.push(`/product/${item.id}/request`);
   }
 
   const atMinMonth = viewMonth <= bounds.min;

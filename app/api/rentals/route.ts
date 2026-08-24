@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-// seed renter "mint" — ใช้แทน auth.uid() เพราะแอป bypass login อยู่
-// (Step 2 ยัง INSERT ด้วย admin client; เมื่อเปิด auth จริงค่อยเปลี่ยนเป็น session user)
-const RENTER_ID = "a2222222-2222-2222-2222-222222222222";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 const NATIONAL_ID_RE = /^\d{13}$/;
 
@@ -19,6 +16,7 @@ type RentalBody = {
   renter?: {
     firstName?: string;
     lastName?: string;
+    email?: string;
     phone?: string;
     nationalId?: string;
   };
@@ -42,6 +40,7 @@ export async function POST(request: Request) {
     // 1) validate
     const firstName = renter?.firstName?.trim() ?? "";
     const lastName = renter?.lastName?.trim() ?? "";
+    const email = renter?.email?.trim() ?? "";
     const phone = renter?.phone?.trim() ?? "";
     const nationalId = renter?.nationalId?.trim() ?? "";
 
@@ -70,6 +69,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Default to romanlnw68 if not logged in
+    const renterUserId = user?.id || "8a88d60a-e2cf-43a6-b4ea-baa9347bfee1";
+
     const admin = createAdminClient();
 
     // 2) ตรวจสินค้ามีจริงและพร้อมให้เช่า
@@ -92,17 +99,26 @@ export async function POST(request: Request) {
     // 3) best-effort อัปเดตข้อมูลตัวตนผู้เช่า (ไม่ให้ล้มทั้งคำขอ)
     const warnings: string[] = [];
 
+    const updatePayload: Record<string, any> = {
+      firstname: firstName,
+      lastname: lastName,
+      national_id: nationalId,
+    };
+    if (email) {
+      updatePayload.email = email;
+    }
+
     const { error: profileError } = await admin
       .from("useraccount")
-      .update({ firstname: firstName, lastname: lastName, national_id: nationalId })
-      .eq("user_id", RENTER_ID);
+      .update(updatePayload)
+      .eq("user_id", renterUserId);
 
     if (profileError) {
-      // อาจเป็น national_id ชน unique — ลองบันทึกเฉพาะชื่อ แล้วเตือน
+      // อาจเป็น national_id หรือ email ชน unique — ลองบันทึกเฉพาะชื่อ แล้วเตือน
       const { error: nameOnlyError } = await admin
         .from("useraccount")
         .update({ firstname: firstName, lastname: lastName })
-        .eq("user_id", RENTER_ID);
+        .eq("user_id", renterUserId);
       warnings.push(
         nameOnlyError
           ? "อัปเดตข้อมูลผู้เช่าไม่สำเร็จ"
@@ -111,17 +127,17 @@ export async function POST(request: Request) {
     }
 
     // upsert เบอร์โทร (PK ผสม user_id+phone) — ลบของเดิมแล้วใส่ใหม่
-    await admin.from("userphones").delete().eq("user_id", RENTER_ID);
+    await admin.from("userphones").delete().eq("user_id", renterUserId);
     const { error: phoneError } = await admin
       .from("userphones")
-      .insert({ user_id: RENTER_ID, phone });
+      .insert({ user_id: renterUserId, phone });
     if (phoneError) warnings.push("บันทึกเบอร์โทรไม่สำเร็จ");
 
-    // 4) INSERT rentalorder (fee/net_income ปล่อย null — คิดตอนชำระเงิน)
+    // 4) INSERT rentalorder
     const { data: order, error: orderError } = await admin
       .from("rentalorder")
       .insert({
-        user_id: RENTER_ID,
+        user_id: renterUserId,
         item_id: itemId,
         start_date: startDate,
         end_date: endDate,
