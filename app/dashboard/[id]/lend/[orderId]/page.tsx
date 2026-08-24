@@ -45,9 +45,7 @@ export default async function LenderOrderDetailPage({
     admin
       .from("userphones")
       .select("phone")
-      .eq("user_id", order.user_id)
-      .limit(1)
-      .maybeSingle(),
+      .eq("user_id", order.user_id),
     admin
       .from("payment")
       .select("payment_id, amount, status, slip_image_url, date")
@@ -69,6 +67,10 @@ export default async function LenderOrderDetailPage({
     [renter?.firstname, renter?.lastname].filter(Boolean).join(" ").trim() ||
     renter?.username ||
     "ผู้เช่า";
+
+  const renterPhones = (phoneRes.data || [])
+    .map((p: any) => p.phone)
+    .filter(Boolean);
 
   const v = renter?.updated_at
     ? new Date(renter.updated_at).getTime()
@@ -105,7 +107,8 @@ export default async function LenderOrderDetailPage({
       username: renter?.username || "renter",
       fullName: renterFullName,
       email: renter?.email || null,
-      phone: phoneRes.data?.phone || null,
+      phone: renterPhones[0] || null,
+      phones: renterPhones,
       avatarUrl,
     },
     payments: (paymentsRes.data || []).map((p) => ({

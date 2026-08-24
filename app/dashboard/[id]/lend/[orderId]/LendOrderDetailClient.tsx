@@ -63,6 +63,7 @@ export interface LendOrderData {
     fullName: string;
     email: string | null;
     phone: string | null;
+    phones?: string[];
     avatarUrl: string | null;
   };
   payments: Array<{
@@ -475,17 +476,31 @@ export default function LendOrderDetailClient({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
-                    {renter.phone && (
-                      <p className="flex items-center gap-1">
+                    {((renter.phones && renter.phones.length > 0)
+                      ? renter.phones
+                      : renter.phone
+                      ? [renter.phone]
+                      : []
+                    ).map((ph, idx) => (
+                      <a
+                        key={idx}
+                        href={`tel:${ph}`}
+                        className="flex items-center gap-1 hover:text-[#1b3554] transition"
+                        title={`โทร ${ph}`}
+                      >
                         <Phone className="h-3.5 w-3.5 text-slate-400" />
-                        <span>{renter.phone}</span>
-                      </p>
-                    )}
+                        <span>{ph}</span>
+                      </a>
+                    ))}
                     {renter.email && (
-                      <p className="flex items-center gap-1">
+                      <a
+                        href={`mailto:${renter.email}`}
+                        className="flex items-center gap-1 hover:text-[#1b3554] transition"
+                        title={`ส่งอีเมล ${renter.email}`}
+                      >
                         <Mail className="h-3.5 w-3.5 text-slate-400" />
                         <span>{renter.email}</span>
-                      </p>
+                      </a>
                     )}
                   </div>
                 </div>

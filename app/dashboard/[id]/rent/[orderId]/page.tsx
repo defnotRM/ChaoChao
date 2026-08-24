@@ -67,9 +67,7 @@ export default async function UserRentalOrderDetailPage({
           .from("userphones")
           .select("phone")
           .eq("user_id", ownerId)
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: [] }),
   ]);
 
   const owner = ownerRes.data;
@@ -77,6 +75,10 @@ export default async function UserRentalOrderDetailPage({
     [owner?.firstname, owner?.lastname].filter(Boolean).join(" ").trim() ||
     owner?.username ||
     "ผู้ให้เช่า";
+
+  const ownerPhones = ((ownerPhoneRes as any).data || [])
+    .map((p: any) => p.phone)
+    .filter(Boolean);
 
   const v = owner?.updated_at
     ? new Date(owner.updated_at).getTime()
@@ -123,7 +125,8 @@ export default async function UserRentalOrderDetailPage({
       username: owner?.username || "lender",
       fullName: ownerFullName,
       email: owner?.email || null,
-      phone: ownerPhoneRes.data?.phone || null,
+      phone: ownerPhones[0] || null,
+      phones: ownerPhones,
       avatarUrl,
       status: owner?.status || "Active",
     },

@@ -61,6 +61,7 @@ export interface RentOrderDetailData {
     fullName: string;
     email: string | null;
     phone: string | null;
+    phones?: string[];
     avatarUrl: string | null;
     status: string;
   };
@@ -428,17 +429,31 @@ export default function RentOrderDetailClient({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
-                    {owner.phone && (
-                      <p className="flex items-center gap-1">
+                    {((owner.phones && owner.phones.length > 0)
+                      ? owner.phones
+                      : owner.phone
+                      ? [owner.phone]
+                      : []
+                    ).map((ph, idx) => (
+                      <a
+                        key={idx}
+                        href={`tel:${ph}`}
+                        className="flex items-center gap-1 hover:text-[#1b3554] transition"
+                        title={`โทร ${ph}`}
+                      >
                         <Phone className="h-3.5 w-3.5 text-slate-400" />
-                        <span>{owner.phone}</span>
-                      </p>
-                    )}
+                        <span>{ph}</span>
+                      </a>
+                    ))}
                     {owner.email && (
-                      <p className="flex items-center gap-1">
+                      <a
+                        href={`mailto:${owner.email}`}
+                        className="flex items-center gap-1 hover:text-[#1b3554] transition"
+                        title={`ส่งอีเมล ${owner.email}`}
+                      >
                         <Mail className="h-3.5 w-3.5 text-slate-400" />
                         <span>{owner.email}</span>
-                      </p>
+                      </a>
                     )}
                   </div>
                 </div>
