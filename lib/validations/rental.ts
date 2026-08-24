@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createRentalOrderSchema = z.object({
-  itemId: z.string().uuid("item ไม่ถูกต้อง"),
+  itemId: z.string().min(1, "item ไม่ถูกต้อง"),
   startDate: z.string().date("รูปแบบวันที่ไม่ถูกต้อง"),
   endDate: z.string().date("รูปแบบวันที่ไม่ถูกต้อง"),
   meetupLocation: z.string().max(500).optional(),

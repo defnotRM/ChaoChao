@@ -6,7 +6,7 @@ const nonNegativeNumber = z
   .min(0, "ต้องเป็นจำนวนที่ไม่ติดลบ");
 
 export const createProductSchema = z.object({
-  categoryId: z.string().uuid("category ไม่ถูกต้อง").nullable().optional(),
+  categoryId: z.string().nullable().optional(),
   itemName: z
     .string()
     .min(1, "กรุณากรอกชื่อสินค้า")
@@ -46,7 +46,7 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 
 // ใช้ตอนแก้ไขสินค้า — ทุก field เป็น optional เพราะแก้ทีละส่วนได้
 export const updateProductSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
   itemName: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
   originalPrice: nonNegativeNumber.optional(),
@@ -62,7 +62,7 @@ export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 // query params ตอน list/search/filter สินค้า
 export const listProductsQuerySchema = z.object({
   q: z.string().optional(), // full-text search บน item_name/description
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().optional(),
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
   province: z.string().optional(),
