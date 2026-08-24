@@ -12,6 +12,10 @@ import {
   CreditCard,
   AlertCircle,
   AlertTriangle,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+  CheckCircle2,
 } from "lucide-react";
 import {
   registerSchema,

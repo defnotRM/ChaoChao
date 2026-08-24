@@ -274,7 +274,7 @@ function UserProfileContent({ userId }: { userId: string }) {
                       </div>
 
                       <Link
-                        href={`/renter/hireproduct/${item.id}`}
+                        href={`/product/${item.id}`}
                         className="rounded-xl bg-[#c0e6fd]/30 px-3 py-1.5 text-xs font-semibold text-[#1b3554] transition hover:bg-[#c0e6fd]/70"
                       >
                         ดูรายละเอียด

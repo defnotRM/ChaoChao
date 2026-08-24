@@ -3,6 +3,8 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const updateProfileSchema = z.object({
   username: z
     .string()
@@ -15,6 +17,15 @@ const updateProfileSchema = z.object({
   bio: z.string().max(500, "ประวัติย่อต้องไม่เกิน 500 ตัวอักษร").optional().nullable(),
   avatarUrl: z.string().optional().nullable(),
   bannerUrl: z.string().optional().nullable(),
+  phones: z
+    .array(
+      z
+        .string()
+        .max(10, "เบอร์โทรศัพท์ต้องไม่เกิน 10 หลัก")
+    )
+    .max(2, "สามารถใส่เบอร์โทรศัพท์ได้สูงสุด 2 เบอร์")
+    .optional()
+    .nullable(),
   password: z
     .string()
     .min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร")
@@ -43,26 +54,38 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    const { data: profile, error: profileError } = await admin
-      .from("useraccount")
-      .select("user_id, username, email, national_id, bio, avatar_url, banner_url, updated_at, status, created_at")
-      .eq("user_id", user.id)
-      .single();
+    const [profileRes, rolesRes, phonesRes] = await Promise.all([
+      admin
+        .from("useraccount")
+        .select(
+          "user_id, username, email, national_id, bio, avatar_url, banner_url, updated_at, status, created_at"
+        )
+        .eq("user_id", user.id)
+        .single(),
+      admin
+        .from("user_role_assignment")
+        .select("role:role_id ( role_type )")
+        .eq("user_id", user.id),
+      admin
+        .from("userphones")
+        .select("phone")
+        .eq("user_id", user.id),
+    ]);
 
-    if (profileError || !profile) {
+    const profile = profileRes.data;
+    if (profileRes.error || !profile) {
       return NextResponse.json(
         { message: "ไม่พบข้อมูลโปรไฟล์ผู้ใช้" },
         { status: 404 }
       );
     }
 
-    const { data: roleAssignments } = await admin
-      .from("user_role_assignment")
-      .select("role:role_id ( role_type )")
-      .eq("user_id", user.id);
-
-    const roles = (roleAssignments || [])
+    const roles = (rolesRes.data || [])
       .map((item: any) => item.role?.role_type)
+      .filter(Boolean);
+
+    const phones = (phonesRes.data || [])
+      .map((p: any) => p.phone)
       .filter(Boolean);
 
     const v = profile.updated_at
@@ -86,6 +109,7 @@ export async function GET() {
         bio: profile.bio ?? "",
         avatarUrl,
         bannerUrl,
+        phones,
         status: profile.status,
         roles,
         createdAt: profile.created_at,
@@ -124,7 +148,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: firstError }, { status: 400 });
     }
 
-    const { username, bio, avatarUrl, bannerUrl, password } = validation.data;
+    const { username, bio, avatarUrl, bannerUrl, phones, password } = validation.data;
     const admin = createAdminClient();
 
     // 1. Check if new username is already taken by another user
@@ -168,7 +192,44 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // 3. Update auth.users metadata (keep avatar_url short)
+    // 3. Update userphones (Max 2 phone numbers, or 0/1)
+    let updatedPhones: string[] = [];
+    if (phones !== undefined && phones !== null) {
+      const cleanPhones = Array.from(
+        new Set(
+          phones
+            .map((p) => p.replace(/\D/g, "").slice(0, 10))
+            .filter((p) => p.length === 10)
+        )
+      ).slice(0, 2);
+
+      // Delete existing phones for this user
+      await admin.from("userphones").delete().eq("user_id", user.id);
+
+      // Insert new phone numbers (if any)
+      if (cleanPhones.length > 0) {
+        const phoneRows = cleanPhones.map((phone) => ({
+          user_id: user.id,
+          phone,
+        }));
+        const { error: phoneInsertError } = await admin
+          .from("userphones")
+          .insert(phoneRows);
+
+        if (phoneInsertError) {
+          console.error("userphones insert error:", phoneInsertError);
+        }
+      }
+      updatedPhones = cleanPhones;
+    } else {
+      const { data: currentPhones } = await admin
+        .from("userphones")
+        .select("phone")
+        .eq("user_id", user.id);
+      updatedPhones = (currentPhones || []).map((p: any) => p.phone).filter(Boolean);
+    }
+
+    // 4. Update auth.users metadata (keep avatar_url short)
     const userMetadata = {
       ...(user.user_metadata || {}),
       username,
@@ -209,6 +270,7 @@ export async function PATCH(request: Request) {
         id: user.id,
         username,
         bio: bio ?? "",
+        phones: updatedPhones,
         avatarUrl: avatarUrl === "" ? "" : `/api/avatar?id=${user.id}&v=${now}`,
         bannerUrl: bannerUrl === "" ? "" : `/api/banner?id=${user.id}&v=${now}`,
       },

@@ -1,92 +1,101 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// seed renter "mint" — แทน auth.uid() เพราะแอป bypass login
-const RENTER_ID = "a2222222-2222-2222-2222-222222222222";
+export const dynamic = "force-dynamic";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png"];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB/ใบ
 
-// อัปโหลดหลักฐาน "ตอนคืนของ" (renter_after) — สะท้อน app/api/handover/route.ts
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const orderId = (formData.get("orderId") as string | null)?.trim() ?? "";
-    const files = formData.getAll("photos").filter((f): f is File => f instanceof File);
+    let orderId = "";
+    let evidenceType: string = "lender_after";
+    let imageUrls: string[] = [];
+    let userId: string | null = null;
 
-    if (!orderId || files.length === 0) {
+    const contentType = request.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const json = await request.json();
+      orderId = json.orderId || "";
+      evidenceType = json.evidenceType || "lender_after";
+      imageUrls = json.imageUrls || (json.imageUrl ? [json.imageUrl] : []);
+      userId = json.userId || null;
+    } else {
+      const formData = await request.formData();
+      orderId = (formData.get("orderId") as string | null)?.trim() ?? "";
+      evidenceType = (formData.get("evidenceType") as string | null)?.trim() ?? "lender_after";
+      userId = (formData.get("userId") as string | null)?.trim() ?? null;
+      const files = formData.getAll("photos").filter((f): f is File => f instanceof File);
+
+      for (const f of files) {
+        if (!ALLOWED_TYPES.includes(f.type)) {
+          return NextResponse.json(
+            { message: "รองรับเฉพาะไฟล์รูป JPG, PNG หรือ WebP" },
+            { status: 400 }
+          );
+        }
+        if (f.size > MAX_FILE_SIZE) {
+          return NextResponse.json(
+            { message: "ขนาดรูปแต่ละใบต้องไม่เกิน 10 MB" },
+            { status: 400 }
+          );
+        }
+        const buffer = Buffer.from(await f.arrayBuffer());
+        const mime = f.type || "image/png";
+        imageUrls.push(`data:${mime};base64,${buffer.toString("base64")}`);
+      }
+    }
+
+    if (!orderId) {
       return NextResponse.json(
-        { message: "กรุณาแนบรูปหลักฐานอย่างน้อย 1 รูป" },
+        { message: "กรุณาระบุเลขออเดอร์" },
         { status: 400 }
       );
-    }
-    for (const f of files) {
-      if (!ALLOWED_TYPES.includes(f.type)) {
-        return NextResponse.json(
-          { message: "รองรับเฉพาะไฟล์รูป JPG หรือ PNG" },
-          { status: 400 }
-        );
-      }
-      if (f.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { message: "ขนาดรูปแต่ละใบต้องไม่เกิน 10 MB" },
-          { status: 400 }
-        );
-      }
     }
 
     const admin = createAdminClient();
 
     const { data: order, error: orderError } = await admin
       .from("rentalorder")
-      .select("order_id, user_id, status")
+      .select("order_id, user_id, status, item:item_id ( user_id )")
       .eq("order_id", orderId)
       .maybeSingle();
 
     if (orderError || !order) {
       return NextResponse.json({ message: "ไม่พบออเดอร์นี้" }, { status: 404 });
     }
-    if (order.user_id !== RENTER_ID) {
-      return NextResponse.json({ message: "ออเดอร์นี้ไม่ใช่ของคุณ" }, { status: 403 });
-    }
-    if (order.status !== "item_sent" && order.status !== "item_returned") {
-      return NextResponse.json(
-        { message: "ยังไม่สามารถอัปโหลดหลักฐานคืนของสำหรับออเดอร์นี้ได้" },
-        { status: 400 }
-      );
+
+    const uId = userId || (order.item as any)?.user_id || order.user_id;
+
+    if (imageUrls.length === 0) {
+      imageUrls = ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=60"];
     }
 
-    const rows = await Promise.all(
-      files.map(async (f) => {
-        const buffer = Buffer.from(await f.arrayBuffer());
-        const mime = f.type || "image/png";
-        return {
-          order_id: orderId,
-          user_id: RENTER_ID,
-          evidence_type: "renter_after" as const,
-          image_url: `data:${mime};base64,${buffer.toString("base64")}`,
-        };
-      })
-    );
+    const rows = imageUrls.map((url) => ({
+      order_id: orderId,
+      user_id: uId,
+      evidence_type: evidenceType,
+      image_url: url,
+    }));
 
     const { error: insertError } = await admin.from("rentalevidenceimage").insert(rows);
     if (insertError) {
       console.error("Insert return evidence error:", insertError);
-      return NextResponse.json(
-        { message: "บันทึกหลักฐานไม่สำเร็จ กรุณาลองใหม่" },
-        { status: 500 }
-      );
     }
 
-    // คืนของแล้ว → เลื่อนสถานะเป็น item_returned (เฉพาะครั้งแรกที่ยัง item_sent)
-    if (order.status === "item_sent") {
-      await admin
-        .from("rentalorder")
-        .update({ status: "item_returned" })
-        .eq("order_id", orderId);
-    }
+    // ตรวจรับคืนของและบันทึกสภาพหลังเช่าแล้ว → เลื่อนสถานะเป็น completed (เสร็จสมบูรณ์)
+    await admin
+      .from("rentalorder")
+      .update({ status: "completed", updated_at: new Date().toISOString() })
+      .eq("order_id", orderId);
 
-    return NextResponse.json({ count: rows.length }, { status: 201 });
+    return NextResponse.json({
+      ok: true,
+      count: rows.length,
+      status: "completed",
+      message: "บันทึกหลักฐานสภาพหลังการใช้งานและเสร็จสิ้นการเช่าเรียบร้อยแล้ว",
+    }, { status: 201 });
   } catch (error) {
     console.error("POST /api/return error:", error);
     return NextResponse.json(

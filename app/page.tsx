@@ -16,6 +16,7 @@ import {
   CategoryIcon,
   SectionHeading,
 } from "@/components/products/designSystem";
+import FeaturedProductsRealtime from "@/components/home/FeaturedProductsRealtime";
 import { getMockItemCategories, getMockProducts } from "@/lib/mock/product";
 
 const popularCategoryIcons = ["camera", "speaker", "tent", "wrench"];
@@ -33,7 +34,7 @@ const gettingStartedOptions = [
     title: "ผู้เช่า",
     description: "ค้นหาและเช่าอุปกรณ์ที่ต้องการได้อย่างมั่นใจ",
     icon: Search,
-    href: "/renter/hireproduct",
+    href: "/products",
     action: "ค้นหาอุปกรณ์",
     features: [
       "เลือกสินค้าจากหลากหลายหมวดหมู่",
@@ -46,7 +47,7 @@ const gettingStartedOptions = [
     title: "ผู้ให้เช่า",
     description: "เปลี่ยนอุปกรณ์ที่มีให้สร้างรายได้เพิ่มเติม",
     icon: Store,
-    href: "/lender/addmyproductList",
+    href: "/lender/postproduct",
     action: "เริ่มลงประกาศ",
     features: [
       "สร้างประกาศพร้อมรายละเอียดได้ง่าย",
@@ -58,10 +59,155 @@ const gettingStartedOptions = [
 ];
 
 
-export default function Home() {
-  const products = getMockProducts();
-  const featured = products.slice(0, 8);
-  const popularCategories = getMockItemCategories().slice(0, 4);
+export const dynamic = "force-dynamic";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Product } from "@/lib/types/product";
+
+async function getFeaturedProducts(): Promise<Product[]> {
+  try {
+    const admin = createAdminClient();
+    const { data: dbItems, error } = await admin
+      .from("item")
+      .select(`
+        item_id,
+        item_name,
+        description,
+        original_price,
+        rental_fee_per_day,
+        deposit,
+        status,
+        created_at,
+        category:category_id (
+          category_id,
+          category_name
+        ),
+        owner:user_id (
+          user_id,
+          username,
+          avatar_url
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (error || !dbItems) {
+      console.error("Error fetching featured products:", error);
+      return [];
+    }
+
+    return dbItems.map((item: any) => ({
+      id: item.item_id,
+      title: item.item_name,
+      categoryId: String(item.category?.category_id || "1"),
+      categoryName: item.category?.category_name || "อุปกรณ์ทั่วไป",
+      imageUrls: [],
+      description: item.description || "",
+      originalPrice: Number(item.original_price) || 0,
+      pricePerDay: Number(item.rental_fee_per_day) || 0,
+      deposit: Number(item.deposit) || 0,
+      condition: "like-new",
+      rating: 4.9,
+      reviewCount: 5,
+      locations: [
+        {
+          id: "loc-1",
+          description: "BTS พญาไท / กรุงเทพฯ",
+          no: "1",
+          alley: null,
+          road: null,
+          subdistrict: "พญาไท",
+          district: "ราชเทวี",
+          province: "กรุงเทพมหานคร",
+          fullAddress: "พญาไท กรุงเทพมหานคร",
+        },
+      ],
+      ownerId: item.owner?.user_id || "",
+      owner: {
+        id: item.owner?.user_id || "",
+        displayName: item.owner?.username || "ผู้ให้เช่า",
+        rating: 5.0,
+        reviewCount: 10,
+        responseRate: 98,
+        isVerified: true,
+        joinedAt: "2026-01-01",
+      },
+      rentalTerms: ["ตรวจเช็กสภาพก่อนรับมอบ", "ส่งคืนตรงเวลา"],
+      reviews: [],
+      status: item.status as any,
+      availability: [],
+      createdAt: item.created_at || new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.error("Error loading featured products:", err);
+    return [];
+  }
+}
+
+async function getPopularCategories() {
+  try {
+    const admin = createAdminClient();
+    const { data: dbCategories } = await admin
+      .from("itemcategory")
+      .select("category_id, category_name");
+
+    const { data: dbItems } = await admin
+      .from("item")
+      .select("category_id");
+
+    const categoryItemCounts: Record<string, number> = {};
+    (dbItems || []).forEach((it: any) => {
+      if (it.category_id) {
+        categoryItemCounts[it.category_id] = (categoryItemCounts[it.category_id] || 0) + 1;
+      }
+    });
+
+    if (!dbCategories || dbCategories.length === 0) {
+      return getMockItemCategories().slice(0, 4).map((c) => ({
+        category_id: c.category_id,
+        category_name: c.category_name,
+        itemCount: 0,
+      }));
+    }
+
+    // Sort to match standard icon order (กล้อง, เครื่องเสียง, แคมป์ปิ้ง, เครื่องมือช่าง)
+    const categoryOrder = ["กล้อง", "เสียง", "แคมป์", "ช่าง"];
+    const sortedCategories = [...dbCategories].sort((a, b) => {
+      const idxA = categoryOrder.findIndex((k) => a.category_name.includes(k));
+      const idxB = categoryOrder.findIndex((k) => b.category_name.includes(k));
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+
+    return sortedCategories.slice(0, 4).map((c) => ({
+      category_id: c.category_id,
+      category_name: c.category_name,
+      itemCount: categoryItemCounts[c.category_id] || 0,
+    }));
+  } catch (err) {
+    console.error("Error loading popular categories:", err);
+    return getMockItemCategories().slice(0, 4).map((c) => ({
+      category_id: c.category_id,
+      category_name: c.category_name,
+      itemCount: 0,
+    }));
+  }
+}
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const featured = await getFeaturedProducts();
+  const popularCategories = await getPopularCategories();
 
   return (
     <div className="pb-16 pt-8 sm:pb-20 sm:pt-10">
@@ -95,7 +241,7 @@ export default function Home() {
             </p>
 
             <Link
-              href="/renter/hireproduct"
+              href="/products"
               className="mt-6 inline-flex h-11 items-center rounded-full bg-[#1b3554] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#000f22] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
             >
               Start Now
@@ -108,7 +254,7 @@ export default function Home() {
             title="หมวดหมู่ยอดนิยม"
             action={
               <Link
-                href="/renter/hireproduct"
+                href="/products"
                 className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline"
               >
                 ดูทั้งหมด <ArrowRight className="h-4 w-4" />
@@ -117,20 +263,25 @@ export default function Home() {
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {popularCategories.map((category, index) => {
-              const itemCount = products.filter(
-                (product) =>
-                  product.categoryId === String(category.category_id),
-              ).length;
+              const iconName = category.category_name.includes("กล้อง")
+                ? "camera"
+                : category.category_name.includes("เสียง")
+                ? "speaker"
+                : category.category_name.includes("แคมป์")
+                ? "tent"
+                : category.category_name.includes("ช่าง")
+                ? "wrench"
+                : popularCategoryIcons[index % popularCategoryIcons.length];
 
               return (
                 <Link
                   key={category.category_id}
-                  href="/renter/hireproduct"
+                  href="/products"
                   className="group rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
                 >
                   <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition group-hover:bg-sky-100">
                     <CategoryIcon
-                      name={popularCategoryIcons[index]}
+                      name={iconName}
                       className="h-5 w-5"
                     />
                   </span>
@@ -138,7 +289,7 @@ export default function Home() {
                     {category.category_name}
                   </span>
                   <span className="mt-1 block text-xs text-slate-400">
-                    {itemCount} รายการ
+                    {category.itemCount} รายการ
                   </span>
                 </Link>
               );
@@ -151,18 +302,14 @@ export default function Home() {
             title="อุปกรณ์แนะนำ"
             action={
               <Link
-                href="/renter/hireproduct"
+                href="/products"
                 className="inline-flex items-center gap-1 text-sm font-medium text-info hover:underline"
               >
                 ดูทั้งหมด <ArrowRight className="h-4 w-4" />
               </Link>
             }
           />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {featured.map((product) => (
-              <ProductCard key={product.id} listing={product} />
-            ))}
-          </div>
+          <FeaturedProductsRealtime initialProducts={featured} />
         </section>
         {/* Getting started */}
         <section>

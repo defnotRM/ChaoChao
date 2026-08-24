@@ -55,6 +55,23 @@ function UsersContent() {
   }, []);
 
   useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.user) {
+            window.location.href = "/login?redirect=/users";
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchUsers(searchTerm, selectedRole);
     }, 250);

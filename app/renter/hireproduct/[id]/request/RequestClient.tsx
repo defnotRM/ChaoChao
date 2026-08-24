@@ -176,12 +176,23 @@ export default function RequestClient({ data }: { data: RequestPageData }) {
           aria-label="เส้นทางนำทาง"
           className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-slate-500"
         >
-          <Link href="/renter/hireproduct" className="transition hover:text-[#1b3554]">
-            เช่าอุปกรณ์
+          <Link href="/" className="transition hover:text-[#1b3554]">
+            หน้าแรก
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/products" className="transition hover:text-[#1b3554]">
+            สินค้าสำหรับเช่า
           </Link>
           <span aria-hidden="true">/</span>
           <Link
-            href={`/renter/hireproduct/${item.id}/booking`}
+            href={`/product/${item.id}`}
+            className="transition hover:text-[#1b3554]"
+          >
+            {item.name}
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link
+            href={`/product/${item.id}/rent`}
             className="transition hover:text-[#1b3554]"
           >
             เลือกวันเช่า
@@ -589,7 +600,7 @@ function MissingDraft({ itemId }: { itemId: string }) {
         กรุณาเลือกช่วงวันและจุดนัดรับ–คืนก่อน แล้วกด “ดำเนินการต่อ” เพื่อมาที่หน้านี้
       </p>
       <Link
-        href={`/renter/hireproduct/${itemId}/booking`}
+        href={`/product/${itemId}/rent`}
         className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-[#000f22] hover:to-[#1b3554] active:scale-95"
       >
         <ArrowLeft className="h-4 w-4" />

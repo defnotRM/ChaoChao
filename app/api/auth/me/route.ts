@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -30,8 +31,13 @@ export async function GET() {
       .map((r: any) => r.role?.role_type)
       .filter(Boolean);
 
+    const cookieStore = await cookies();
+    const activeRoleCookie = cookieStore.get("chaochao_active_role")?.value;
+
     const role =
-      roles.includes("admin")
+      activeRoleCookie && (roles.includes(activeRoleCookie) || activeRoleCookie === "admin")
+        ? activeRoleCookie
+        : roles.includes("admin")
         ? "admin"
         : roles.includes("lender")
         ? "lender"

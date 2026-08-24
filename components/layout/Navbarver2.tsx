@@ -46,7 +46,7 @@ function Brand() {
 function SearchBar({ mobile = false }: { mobile?: boolean }) {
   return (
     <form
-      action="/renter/hireproduct"
+      action="/products"
       role="search"
       className={mobile ? "w-full" : "mx-8 min-w-0 max-w-2xl flex-1"}
     >
@@ -175,12 +175,7 @@ export default function Navbarver2() {
     }
   };
 
-  const dashboardLink =
-    user?.role === "lender"
-      ? "/lender/mydashboard"
-      : user?.role === "admin"
-      ? "/admin"
-      : "/renter/mydashboard";
+  const dashboardLink = user?.id ? `/dashboard/${user.id}` : "/dashboard";
 
   const userInitial = user?.username ? user.username[0].toUpperCase() : "U";
 
@@ -376,7 +371,7 @@ export default function Navbarver2() {
                 หน้าแรก
               </Link>
               <Link
-                href="/renter/hireproduct"
+                href="/products"
                 onClick={() => setIsOpen(false)}
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-sky-50 hover:text-[#17326b]"
               >

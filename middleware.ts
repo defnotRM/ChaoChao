@@ -37,7 +37,31 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Auth protection temporarily bypassed to allow browsing without login
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  // Protect / and /users (and sub-paths of /users)
+  const isProtected =
+    pathname === "/" ||
+    pathname === "/users" ||
+    pathname.startsWith("/users/");
+
+  if (isProtected && !user) {
+    const loginUrl = new URL("/login", request.url);
+    if (pathname !== "/") {
+      loginUrl.searchParams.set("redirect", pathname);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // If already logged in and visiting /login or /register, redirect to /
+  if ((pathname === "/login" || pathname === "/register") && user) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   return response;
 }
 
@@ -48,8 +72,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - api routes
      * - public files (images, svg, etc.)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

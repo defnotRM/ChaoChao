@@ -1,3 +1,5 @@
-export default function AddProductPage() {
-  return <h1>Add Product</h1>;
+import { redirect } from "next/navigation";
+
+export default function AddProductRedirect() {
+  redirect("/lender/postproduct");
 }

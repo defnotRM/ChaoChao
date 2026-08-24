@@ -98,6 +98,7 @@ export interface ProductLocation {
 export interface ProductOwner {
   id: string;
   displayName: string;
+  avatarUrl?: string | null;
   rating: number;
   reviewCount: number;
   responseRate: number;
