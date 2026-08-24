@@ -58,10 +58,112 @@ const gettingStartedOptions = [
 ];
 
 
-export default function Home() {
-  const products = getMockProducts();
-  const featured = products.slice(0, 8);
-  const popularCategories = getMockItemCategories().slice(0, 4);
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Product } from "@/lib/types/product";
+
+async function getFeaturedProducts(): Promise<Product[]> {
+  try {
+    const admin = createAdminClient();
+    const { data: dbItems, error } = await admin
+      .from("item")
+      .select(`
+        item_id,
+        item_name,
+        description,
+        original_price,
+        rental_fee_per_day,
+        deposit,
+        status,
+        created_at,
+        category:category_id (
+          category_id,
+          category_name
+        ),
+        owner:user_id (
+          user_id,
+          username,
+          avatar_url
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (error || !dbItems || dbItems.length === 0) {
+      return getMockProducts().slice(0, 8);
+    }
+
+    return dbItems.map((item: any) => ({
+      id: item.item_id,
+      title: item.item_name,
+      categoryId: item.category?.category_id || "1",
+      categoryName: item.category?.category_name || "อุปกรณ์ทั่วไป",
+      imageUrls: [],
+      description: item.description || "",
+      originalPrice: Number(item.original_price) || 0,
+      pricePerDay: Number(item.rental_fee_per_day) || 0,
+      deposit: Number(item.deposit) || 0,
+      condition: "like-new",
+      rating: 4.9,
+      reviewCount: 5,
+      locations: [
+        {
+          id: "loc-1",
+          description: "BTS พญาไท / กรุงเทพฯ",
+          no: "1",
+          alley: null,
+          road: null,
+          subdistrict: "พญาไท",
+          district: "ราชเทวี",
+          province: "กรุงเทพมหานคร",
+          fullAddress: "พญาไท กรุงเทพมหานคร",
+        },
+      ],
+      ownerId: item.owner?.user_id || "",
+      owner: {
+        id: item.owner?.user_id || "",
+        displayName: item.owner?.username || "ผู้ให้เช่า",
+        rating: 5.0,
+        reviewCount: 10,
+        responseRate: 98,
+        isVerified: true,
+        joinedAt: "2026-01-01",
+      },
+      rentalTerms: ["ตรวจเช็กสภาพก่อนรับมอบ", "ส่งคืนตรงเวลา"],
+      reviews: [],
+      status: item.status as any,
+      availability: [],
+      createdAt: item.created_at || new Date().toISOString(),
+    }));
+  } catch {
+    return getMockProducts().slice(0, 8);
+  }
+}
+
+async function getPopularCategories() {
+  try {
+    const admin = createAdminClient();
+    const { data: dbCategories } = await admin
+      .from("itemcategory")
+      .select("category_id, category_name, description")
+      .limit(4);
+
+    if (!dbCategories || dbCategories.length === 0) {
+      return getMockItemCategories().slice(0, 4);
+    }
+
+    return dbCategories.map((c) => ({
+      category_id: c.category_id,
+      category_name: c.category_name,
+      description: c.description,
+    }));
+  } catch {
+    return getMockItemCategories().slice(0, 4);
+  }
+}
+
+export default async function Home() {
+  const featured = await getFeaturedProducts();
+  const popularCategories = await getPopularCategories();
 
   return (
     <div className="pb-16 pt-8 sm:pb-20 sm:pt-10">
@@ -117,9 +219,9 @@ export default function Home() {
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {popularCategories.map((category, index) => {
-              const itemCount = products.filter(
+              const itemCount = featured.filter(
                 (product) =>
-                  product.categoryId === String(category.category_id),
+                  String(product.categoryId) === String(category.category_id),
               ).length;
 
               return (
