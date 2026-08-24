@@ -179,12 +179,11 @@ export default function RentOrderDetailClient({
       });
       if (!res.ok) return;
       const json = await res.json();
-      const latestOrder = json.data;
+      const latestOrder = json.data || json;
       if (!latestOrder) return;
 
-      if (latestOrder.status && latestOrder.status !== currentStatus) {
+      if (latestOrder.status) {
         setCurrentStatus(latestOrder.status);
-        router.refresh();
       }
 
       if (Array.isArray(latestOrder.payment)) {
@@ -193,7 +192,7 @@ export default function RentOrderDetailClient({
     } catch {
       // ignore
     }
-  }, [order.order_id, currentStatus, router]);
+  }, [order.order_id]);
 
   // Realtime subscription + fallback poll
   useEffect(() => {
@@ -211,7 +210,6 @@ export default function RentOrderDetailClient({
         (payload) => {
           if (payload.new && (payload.new as any).status) {
             setCurrentStatus((payload.new as any).status);
-            router.refresh();
           }
         }
       )
@@ -229,7 +227,7 @@ export default function RentOrderDetailClient({
       )
       .subscribe();
 
-    const interval = setInterval(fetchLatestOrder, 2500);
+    const interval = setInterval(fetchLatestOrder, 1500);
 
     return () => {
       supabase.removeChannel(channel);
