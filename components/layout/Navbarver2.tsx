@@ -175,12 +175,7 @@ export default function Navbarver2() {
     }
   };
 
-  const dashboardLink =
-    user?.role === "lender"
-      ? "/lender/mydashboard"
-      : user?.role === "admin"
-      ? "/admin"
-      : "/renter/mydashboard";
+  const dashboardLink = "/dashboard";
 
   const userInitial = user?.username ? user.username[0].toUpperCase() : "U";
 
