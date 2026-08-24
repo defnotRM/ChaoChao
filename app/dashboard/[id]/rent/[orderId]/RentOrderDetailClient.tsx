@@ -337,11 +337,10 @@ export default function RentOrderDetailClient({
                 </div>
               ) : (
                 <div className="overflow-x-auto pb-2">
-                  <ol className="flex min-w-[620px] items-start">
+                  <ol className="grid min-w-[600px] grid-cols-6 items-start gap-2">
                     {TIMELINE.map((label, index) => {
                       const isDone = index < step;
                       const isCurrent = index === step;
-                      const isLast = index === TIMELINE.length - 1;
 
                       let circleCls = "bg-white text-slate-300 ring-1 ring-slate-200";
                       if (isDone) {
@@ -351,10 +350,10 @@ export default function RentOrderDetailClient({
                       }
 
                       return (
-                        <li key={label} className={`flex flex-col items-center text-center ${isLast ? "" : "flex-1"}`}>
-                          <div className="flex w-full items-center">
+                        <li key={label} className="flex flex-col items-center justify-start text-center">
+                          <div className="flex w-full items-center justify-center">
                             <span
-                              className={`mx-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${circleCls}`}
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${circleCls}`}
                             >
                               {isDone ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                             </span>
