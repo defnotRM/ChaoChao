@@ -309,9 +309,6 @@ export default async function UserRentalOrderDetailPage({
                           >
                             {label}
                           </span>
-                          <span className="mt-0.5 block text-[10px] leading-tight text-slate-400">
-                            {timelineHint(index, order, days)}
-                          </span>
                         </li>
                       );
                     })}
@@ -505,36 +502,6 @@ export default async function UserRentalOrderDetailPage({
       </div>
     </div>
   );
-}
-
-// ข้อความช่วยใต้แต่ละขั้นของไทม์ไลน์ (วันจริง + ข้อความคงที่)
-function timelineHint(
-  index: number,
-  order: {
-    created_at: string;
-    start_date: string;
-    end_date: string;
-    meetup_location: string | null;
-    return_location: string | null;
-  },
-  _days: number
-) {
-  switch (index) {
-    case 0:
-      return `ส่งคำขอเมื่อ ${dateFmt.format(new Date(order.created_at))}`;
-    case 1:
-      return "ผู้ให้เช่าตรวจและอนุมัติคำขอ";
-    case 2:
-      return "โอนเงินและอัปโหลดสลิปภายในเวลาที่กำหนด";
-    case 3:
-      return "ทีมงานตรวจสอบสลิปการโอน";
-    case 4:
-      return `${formatDate(order.start_date)} · ${order.meetup_location || "จุดนัดรับ"}`;
-    case 5:
-      return `${formatDate(order.end_date)} · ${order.return_location || "จุดนัดคืน"}`;
-    default:
-      return "";
-  }
 }
 
 function MeetPoint({
