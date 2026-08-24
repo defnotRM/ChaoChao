@@ -17,7 +17,7 @@ interface AuthUser {
 export default function DashboardPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeRoleTab, setActiveRoleTab] = useState<'renter' | 'lender'>('renter');
+  const [activeRole, setActiveRole] = useState<'renter' | 'lender'>('renter');
 
   useEffect(() => {
     async function checkUserAuth() {
@@ -28,12 +28,8 @@ export default function DashboardPage() {
           const data = await res.json();
           if (data.user) {
             setUser(data.user);
-            const userRoles: string[] = data.user.roles || [data.user.role || 'renter'];
-            if (userRoles.includes('lender') && !userRoles.includes('renter')) {
-              setActiveRoleTab('lender');
-            } else {
-              setActiveRoleTab('renter');
-            }
+            const loginRole = data.user.role === 'lender' ? 'lender' : 'renter';
+            setActiveRole(loginRole);
           }
         }
       } catch (err) {
@@ -46,9 +42,7 @@ export default function DashboardPage() {
   }, []);
 
   const roles = user?.roles || (user?.role ? [user.role] : ['renter']);
-  const isRenter = roles.includes('renter');
-  const isLender = roles.includes('lender') || roles.includes('admin');
-  const hasBothRoles = isRenter && isLender;
+  const hasBothRoles = roles.includes('renter') && (roles.includes('lender') || roles.includes('admin'));
 
   if (loading) {
     return (
@@ -62,22 +56,16 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        {/* 1. Header with Role Switcher (if user has both roles) */}
+        {/* 1. Header with Active Login Role */}
         <DashboardHeader
           user={user}
-          activeRoleTab={activeRoleTab}
-          onRoleTabChange={setActiveRoleTab}
+          activeRole={activeRole}
+          onRoleSwitch={setActiveRole}
           hasBothRoles={hasBothRoles}
         />
 
-        {/* 2. Conditional Role Dashboard View */}
-        {hasBothRoles ? (
-          activeRoleTab === 'renter' ? (
-            <RenterDashboardView />
-          ) : (
-            <LenderDashboardView />
-          )
-        ) : isLender ? (
+        {/* 2. Render View for the exact logged-in role */}
+        {activeRole === 'lender' ? (
           <LenderDashboardView />
         ) : (
           <RenterDashboardView />

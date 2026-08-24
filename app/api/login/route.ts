@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         ? "/lender/mydashboard"
         : "/renter/mydashboard";
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "เข้าสู่ระบบสำเร็จ",
         user: {
@@ -99,6 +99,15 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
+
+    response.cookies.set("chaochao_active_role", role, {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
   } catch (error) {
     console.error("Login route error:", error);
     return NextResponse.json(
