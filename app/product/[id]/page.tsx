@@ -27,6 +27,7 @@ const thbFormatter = new Intl.NumberFormat("th-TH", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("th-TH", {
+  timeZone: "Asia/Bangkok",
   day: "numeric",
   month: "short",
   year: "numeric",
@@ -43,10 +44,18 @@ const statusContent: Record<
 };
 
 function formatDate(date: string) {
-  return dateFormatter.format(new Date(`${date}T00:00:00+07:00`));
+  if (!date) return "";
+  const clean = date.split("T")[0];
+  const parts = clean.split("-").map(Number);
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return dateFormatter.format(new Date(Date.UTC(y, m - 1, d, 12, 0, 0)));
+  }
+  return clean;
 }
 
 function formatTimestamp(date: string) {
+  if (!date) return "";
   return dateFormatter.format(new Date(date));
 }
 

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   Info,
   Loader2,
   MapPin,
@@ -97,6 +98,18 @@ function inRanges(key: string, ranges: DateRange[]) {
 
 function monthValue(year: number, month: number) {
   return year * 12 + month;
+}
+
+function formatDisplayDate(val: string | Date | undefined | null) {
+  if (!val) return "";
+  const clean = typeof val === "string" ? val.split("T")[0] : "";
+  if (!clean) return "";
+  const parts = clean.split("-").map(Number);
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return longDateFmt.format(new Date(Date.UTC(y, m - 1, d, 12, 0, 0)));
+  }
+  return clean;
 }
 
 /* ────────────────────────────── component ────────────────────────────── */
@@ -361,9 +374,26 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
                     <CalendarDays className="h-5 w-5" />
                   </span>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">
-                      ปฏิทินคิวว่าง
-                    </h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-bold text-slate-900">
+                        ปฏิทินคิวว่าง
+                      </h2>
+                      {availability.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {availability.map((r, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-800"
+                            >
+                              <Clock3 className="h-3 w-3 text-sky-600" />
+                              <span>
+                                ช่วงที่เปิดให้เช่า: {formatDisplayDate(r.start)} – {formatDisplayDate(r.end)}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500">{item.name}</p>
                   </div>
                 </div>
