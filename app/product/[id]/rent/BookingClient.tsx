@@ -12,9 +12,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
+  Loader2,
   MapPin,
   MessageCircle,
   Package,
+  Send,
   ShieldCheck,
   Star,
 } from "lucide-react";
@@ -201,37 +203,51 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
   const netIncome = rentalFee - platformFee;
   const totalPayable = rentalFee + item.deposit;
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const canContinue = Boolean(startKey && endKey && pickupId && returnId);
 
-  function handleContinue() {
+  async function handleSubmitBooking() {
     if (!canContinue || !startKey || !endKey) return;
-    const pickup = locations.find((l) => l.id === pickupId);
-    const returnLoc = locations.find((l) => l.id === returnId);
-
-    // payload รูปทรง rentalorder — จุดส่งต่อให้ Step "ส่งคำขอ"
-    const next: BookingDraft = {
-      item_id: item.id,
-      user_id: null,
-      start_date: startKey,
-      end_date: endKey,
-      meetup_location: pickup?.description ?? "",
-      return_location: returnLoc?.description ?? "",
-      rental_fee: rentalFee,
-      deposit: item.deposit,
-      total_paid: totalPayable,
-      fee: platformFee,
-      net_income: netIncome,
-      status: "requested",
-    };
-
     try {
-      sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // sessionStorage อาจถูกปิด
+      setIsSubmitting(true);
+      setSubmitError(null);
+      const pickup = locations.find((l) => l.id === pickupId);
+      const returnLoc = locations.find((l) => l.id === returnId);
+
+      const payload = {
+        itemId: item.id,
+        startDate: startKey,
+        endDate: endKey,
+        meetupLocation: pickup?.description || pickup?.fullAddress || "จุดนัดรับที่ตกลงกัน",
+        returnLocation: returnLoc?.description || returnLoc?.fullAddress || "จุดนัดคืนที่ตกลงกัน",
+        rentalFee,
+        deposit: item.deposit,
+        totalPaid: totalPayable,
+      };
+
+      const res = await fetch("/api/rentals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        setSubmitError(result.message || "ส่งคำขอเช่าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+        return;
+      }
+
+      // ส่งคำขอเช่าสำเร็จ นำผู้เช่าไปจัดการสถานะต่อใน Dashboard
+      const targetUserId = result.userId || "8a88d60a-e2cf-43a6-b4ea-baa9347bfee1";
+      router.push(`/dashboard/${targetUserId}/rent/${result.orderId}`);
+    } catch (err) {
+      console.error("Submit booking error:", err);
+      setSubmitError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setIsSubmitting(false);
     }
-    setDraft(next);
-    // ไหลต่อไป Step 2 "ส่งคำขอเช่า"
-    router.push(`/product/${item.id}/request`);
   }
 
   const atMinMonth = viewMonth <= bounds.min;
@@ -280,11 +296,9 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
           </h1>
           <p className="mt-1.5 text-sm text-slate-500">
             เลือกช่วงวันที่ต้องการเช่า และจุดนัดรับ–คืนอุปกรณ์
-            จากนั้นตรวจสอบค่าใช้จ่ายก่อนดำเนินการต่อ
+            จากนั้นกดส่งคำขอเช่าเพื่อดำเนินการในแดชบอร์ด
           </p>
         </header>
-
-        <Stepper />
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22.5rem] xl:gap-8">
           {/* ───────────── คอลัมน์ซ้าย ───────────── */}
@@ -598,16 +612,26 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
 
               <button
                 type="button"
-                onClick={handleContinue}
-                disabled={!canContinue}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+                onClick={handleSubmitBooking}
+                disabled={!canContinue || isSubmitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1b3554] to-[#3f6593] px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-[#1b3554]/15 transition duration-200 hover:from-[#000f22] hover:to-[#1b3554] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
               >
-                <span>ดำเนินการต่อ</span>
-                <ArrowRight className="h-4 w-4" />
+                {isSubmitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+                <span>{isSubmitting ? "กำลังส่งคำขอเช่า..." : "ส่งคำขอเช่า"}</span>
               </button>
 
-              <p className="mt-2 text-center text-xs text-slate-400">
-                ยังไม่มีการตัดเงินในขั้นตอนนี้
+              {submitError && (
+                <div className="mt-3 rounded-xl bg-rose-50 p-3 text-xs text-rose-600">
+                  {submitError}
+                </div>
+              )}
+
+              <p className="mt-2.5 text-center text-xs text-slate-400">
+                เมื่อส่งคำขอแล้ว คุณสามารถติดตามและดำเนินการต่อในแดชบอร์ด
               </p>
 
               {!canContinue && (startKey || pickupId) && (
@@ -629,63 +653,6 @@ export default function BookingClient({ data }: { data: BookingPageData }) {
 }
 
 /* ────────────────────────────── ชิ้นส่วนย่อย ────────────────────────────── */
-
-function Stepper() {
-  const steps = [
-    "เลือกวัน–จุดนัด",
-    "ส่งคำขอ",
-    "ชำระเงิน",
-    "รับของ",
-    "คืนของ",
-  ];
-  const active = 0;
-  return (
-    <div className="overflow-x-auto pb-1">
-      <ol className="flex min-w-[680px] items-center">
-        {steps.map((label, index) => {
-          const isActive = index === active;
-          const isDone = index < active;
-          const isLast = index === steps.length - 1;
-          return (
-            <li
-              key={label}
-              className={`flex items-center ${isLast ? "" : "flex-1"}`}
-            >
-              <div className="flex shrink-0 items-center gap-2.5">
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
-                    isActive
-                      ? "bg-[#1b3554] text-white ring-4 ring-[#c0e6fd]/50"
-                      : isDone
-                        ? "bg-[#1b3554] text-white"
-                        : "bg-white text-slate-400 ring-1 ring-slate-200"
-                  }`}
-                >
-                  {isDone ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
-                </span>
-                <span
-                  className={`whitespace-nowrap text-sm ${
-                    isActive
-                      ? "font-bold text-slate-900"
-                      : "font-medium text-slate-400"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-              {!isLast && (
-                <span
-                  aria-hidden="true"
-                  className="mx-2 h-px flex-1 bg-slate-200 sm:mx-3"
-                />
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
 
 function LegendDot({ className, label }: { className: string; label: string }) {
   return (
