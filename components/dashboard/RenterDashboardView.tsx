@@ -50,7 +50,7 @@ interface RenterMetrics {
   totalSpent: number;
 }
 
-export function RenterDashboardView() {
+export function RenterDashboardView({ userId }: { userId?: string } = {}) {
   const [orders, setOrders] = useState<RenterOrder[]>([]);
   const [metrics, setMetrics] = useState<RenterMetrics>({
     active: 0,
@@ -64,7 +64,10 @@ export function RenterDashboardView() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch('/api/dashboard/renter');
+        const url = userId
+          ? `/api/dashboard/renter?userId=${encodeURIComponent(userId)}`
+          : '/api/dashboard/renter';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setOrders(data.orders || []);
@@ -77,7 +80,7 @@ export function RenterDashboardView() {
       }
     }
     loadData();
-  }, []);
+  }, [userId]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

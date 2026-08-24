@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const requestedUserId = searchParams.get("userId");
+
     const supabase = await createServerClient();
     const {
       data: { user },
@@ -11,7 +16,7 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    let userId = user?.id;
+    let userId = requestedUserId || user?.id;
     if (!userId) {
       // Default to yoklnw67 (lender) if not logged in
       userId = "b5041d3d-ba07-4230-96fa-3fbfb4411439";

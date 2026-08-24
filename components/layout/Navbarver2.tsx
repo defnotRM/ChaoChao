@@ -175,7 +175,7 @@ export default function Navbarver2() {
     }
   };
 
-  const dashboardLink = "/dashboard";
+  const dashboardLink = user?.id ? `/dashboard/${user.id}` : "/dashboard";
 
   const userInitial = user?.username ? user.username[0].toUpperCase() : "U";
 

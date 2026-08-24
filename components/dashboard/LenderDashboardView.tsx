@@ -60,7 +60,7 @@ interface LenderMetrics {
   estimatedIncome: number;
 }
 
-export function LenderDashboardView() {
+export function LenderDashboardView({ userId }: { userId?: string } = {}) {
   const [items, setItems] = useState<LenderItem[]>([]);
   const [incomingOrders, setIncomingOrders] = useState<IncomingOrder[]>([]);
   const [metrics, setMetrics] = useState<LenderMetrics>({
@@ -76,7 +76,10 @@ export function LenderDashboardView() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch('/api/dashboard/lender');
+        const url = userId
+          ? `/api/dashboard/lender?userId=${encodeURIComponent(userId)}`
+          : '/api/dashboard/lender';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setItems(data.items || []);
@@ -98,7 +101,7 @@ export function LenderDashboardView() {
       }
     }
     loadData();
-  }, []);
+  }, [userId]);
 
   const getItemStatusBadge = (status: string) => {
     switch (status) {

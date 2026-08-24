@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const requestedUserId = searchParams.get("userId");
+
     const supabase = await createServerClient();
     const {
       data: { user },
@@ -11,15 +16,9 @@ export async function GET() {
 
     const admin = createAdminClient();
 
-    // หากไม่มี session ให้ดึง user คนแรกเพื่อเป็น fallback ให้พรีวิวได้
-    let userId = user?.id;
+    let userId = requestedUserId || user?.id;
     if (!userId) {
-      const { data: firstUser } = await admin
-        .from("useraccount")
-        .select("user_id")
-        .limit(1)
-        .maybeSingle();
-      userId = firstUser?.user_id || "a2222222-2222-2222-2222-222222222222";
+      userId = "8a88d60a-e2cf-43a6-b4ea-baa9347bfee1"; // Default to romanlnw68
     }
 
     // 1. ดึงรายการคำสั่งเช่าของผู้เช่าคนนี้
@@ -57,22 +56,46 @@ export async function GET() {
 
     if (error) {
       console.error("Error fetching renter orders:", error);
-      return NextResponse.json({ orders: [], metrics: { active: 0, pending: 0, completed: 0, totalSpent: 0 } });
+      return NextResponse.json({
+        orders: [],
+        metrics: { active: 0, pending: 0, completed: 0, totalSpent: 0 },
+      });
     }
 
     const orderList = orders || [];
 
     // 2. คำนวณสรุปสถิติ
-    const activeStatuses = ["requested", "awaiting_payment", "paid", "item_sent", "awaiting_additional_payment"];
+    const activeStatuses = [
+      "requested",
+      "awaiting_payment",
+      "paid",
+      "item_sent",
+      "awaiting_additional_payment",
+    ];
     const pendingStatuses = ["requested", "awaiting_payment"];
     const completedStatuses = ["completed", "item_returned"];
 
-    const activeCount = orderList.filter((o) => activeStatuses.includes(o.status)).length;
-    const pendingCount = orderList.filter((o) => pendingStatuses.includes(o.status)).length;
-    const completedCount = orderList.filter((o) => completedStatuses.includes(o.status)).length;
+    const activeCount = orderList.filter((o) =>
+      activeStatuses.includes(o.status)
+    ).length;
+    const pendingCount = orderList.filter((o) =>
+      pendingStatuses.includes(o.status)
+    ).length;
+    const completedCount = orderList.filter((o) =>
+      completedStatuses.includes(o.status)
+    ).length;
     const totalSpent = orderList
-      .filter((o) => o.status === "paid" || o.status === "completed" || o.status === "item_sent")
-      .reduce((sum, o) => sum + (Number(o.total_paid) || Number(o.rental_fee) || 0), 0);
+      .filter(
+        (o) =>
+          o.status === "paid" ||
+          o.status === "completed" ||
+          o.status === "item_sent"
+      )
+      .reduce(
+        (sum, o) =>
+          sum + (Number(o.total_paid) || Number(o.rental_fee) || 0),
+        0
+      );
 
     return NextResponse.json({
       orders: orderList,
@@ -86,7 +109,10 @@ export async function GET() {
   } catch (err) {
     console.error("Error in /api/dashboard/renter:", err);
     return NextResponse.json(
-      { orders: [], metrics: { active: 0, pending: 0, completed: 0, totalSpent: 0 } },
+      {
+        orders: [],
+        metrics: { active: 0, pending: 0, completed: 0, totalSpent: 0 },
+      },
       { status: 500 }
     );
   }
