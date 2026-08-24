@@ -114,7 +114,7 @@ const TIMELINE = [
 function statusStep(status: string, hasPending: boolean): number {
   switch (status) {
     case "requested":
-      return 0;
+      return 1; // ส่งคำขอแล้ว (มีเครื่องหมายถูก) ปัจจุบันรอร้านอนุมัติ (ขั้นที่ 2)
     case "awaiting_payment":
       return hasPending ? 3 : 2; // ถ้ามี pending slip อยู่ที่ขั้น 4 "ตรวจการชำระ" ถ้าไม่มีอยู่ที่ขั้น 3 "รอชำระเงิน"
     case "paid":
