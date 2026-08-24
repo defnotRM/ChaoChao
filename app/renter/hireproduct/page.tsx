@@ -1,12 +1,13 @@
 import ProductCatalog from "@/components/products/ProductCatalog";
-import {
-  getMockItemCategories,
-  getMockProducts,
-} from "@/lib/mock/product";
+import { getCategories, getProducts } from "@/lib/products/queries";
 
-export default function HireProductPage() {
-  const itemCategories = getMockItemCategories();
-  const products = getMockProducts();
+export const dynamic = "force-dynamic";
+
+export default async function HireProductPage() {
+  const [itemCategories, products] = await Promise.all([
+    getCategories(),
+    getProducts(),
+  ]);
 
   return (
     <section className="min-h-screen bg-[#f8fafc] py-8 sm:py-10">
