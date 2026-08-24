@@ -16,6 +16,7 @@ import {
   CategoryIcon,
   SectionHeading,
 } from "@/components/products/designSystem";
+import FeaturedProductsRealtime from "@/components/home/FeaturedProductsRealtime";
 import { getMockItemCategories, getMockProducts } from "@/lib/mock/product";
 
 const popularCategoryIcons = ["camera", "speaker", "tent", "wrench"];
@@ -46,7 +47,7 @@ const gettingStartedOptions = [
     title: "ผู้ให้เช่า",
     description: "เปลี่ยนอุปกรณ์ที่มีให้สร้างรายได้เพิ่มเติม",
     icon: Store,
-    href: "/lender/addmyproductList",
+    href: "/lender/postproduct",
     action: "เริ่มลงประกาศ",
     features: [
       "สร้างประกาศพร้อมรายละเอียดได้ง่าย",
@@ -296,11 +297,7 @@ export default async function Home() {
               </Link>
             }
           />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {featured.map((product) => (
-              <ProductCard key={product.id} listing={product} />
-            ))}
-          </div>
+          <FeaturedProductsRealtime initialProducts={featured} />
         </section>
         {/* Getting started */}
         <section>
