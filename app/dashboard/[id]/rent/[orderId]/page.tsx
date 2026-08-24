@@ -64,8 +64,6 @@ const TIMELINE = [
   "ตรวจการชำระ",
   "รับของ",
   "คืนของ",
-  "ตรวจสภาพ",
-  "คืนเงินประกัน",
 ];
 
 function statusStep(status: string, hasPending: boolean): number {
@@ -79,9 +77,8 @@ function statusStep(status: string, hasPending: boolean): number {
     case "item_sent":
       return 5;
     case "item_returned":
-      return 6;
     case "awaiting_additional_payment":
-      return 6;
+      return 5;
     case "completed":
       return TIMELINE.length; // ครบทุกขั้น
     default:
@@ -535,10 +532,6 @@ function timelineHint(
       return `${formatDate(order.start_date)} · ${order.meetup_location || "จุดนัดรับ"}`;
     case 5:
       return `${formatDate(order.end_date)} · ${order.return_location || "จุดนัดคืน"}`;
-    case 6:
-      return "ตรวจสภาพอุปกรณ์หลังคืน";
-    case 7:
-      return "คืนเงินประกันหากไม่มีความเสียหาย";
     default:
       return "";
   }
