@@ -148,20 +148,47 @@ async function getPopularCategories() {
     const admin = createAdminClient();
     const { data: dbCategories } = await admin
       .from("itemcategory")
-      .select("category_id, category_name, description")
-      .limit(4);
+      .select("category_id, category_name");
+
+    const { data: dbItems } = await admin
+      .from("item")
+      .select("category_id");
+
+    const categoryItemCounts: Record<string, number> = {};
+    (dbItems || []).forEach((it: any) => {
+      if (it.category_id) {
+        categoryItemCounts[it.category_id] = (categoryItemCounts[it.category_id] || 0) + 1;
+      }
+    });
 
     if (!dbCategories || dbCategories.length === 0) {
-      return getMockItemCategories().slice(0, 4);
+      return getMockItemCategories().slice(0, 4).map((c) => ({
+        category_id: c.category_id,
+        category_name: c.category_name,
+        itemCount: 0,
+      }));
     }
 
-    return dbCategories.map((c) => ({
+    // Sort to match standard icon order (กล้อง, เครื่องเสียง, แคมป์ปิ้ง, เครื่องมือช่าง)
+    const categoryOrder = ["กล้อง", "เสียง", "แคมป์", "ช่าง"];
+    const sortedCategories = [...dbCategories].sort((a, b) => {
+      const idxA = categoryOrder.findIndex((k) => a.category_name.includes(k));
+      const idxB = categoryOrder.findIndex((k) => b.category_name.includes(k));
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+
+    return sortedCategories.slice(0, 4).map((c) => ({
       category_id: c.category_id,
       category_name: c.category_name,
-      description: c.description,
+      itemCount: categoryItemCounts[c.category_id] || 0,
     }));
-  } catch {
-    return getMockItemCategories().slice(0, 4);
+  } catch (err) {
+    console.error("Error loading popular categories:", err);
+    return getMockItemCategories().slice(0, 4).map((c) => ({
+      category_id: c.category_id,
+      category_name: c.category_name,
+      itemCount: 0,
+    }));
   }
 }
 
@@ -223,11 +250,6 @@ export default async function Home() {
           />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {popularCategories.map((category, index) => {
-              const itemCount = featured.filter(
-                (product) =>
-                  String(product.categoryId) === String(category.category_id),
-              ).length;
-
               const iconName = category.category_name.includes("กล้อง")
                 ? "camera"
                 : category.category_name.includes("เสียง")
@@ -254,7 +276,7 @@ export default async function Home() {
                     {category.category_name}
                   </span>
                   <span className="mt-1 block text-xs text-slate-400">
-                    {itemCount} รายการ
+                    {category.itemCount} รายการ
                   </span>
                 </Link>
               );
