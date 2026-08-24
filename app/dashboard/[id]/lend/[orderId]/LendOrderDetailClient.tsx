@@ -356,10 +356,6 @@ export default function LendOrderDetailClient({
                 {chip.label}
               </span>
             </div>
-            <p className="mt-1 font-mono text-xs text-slate-400">
-              เลขที่รายการ: {orderNo(order.order_id, order.created_at)} · ส่งคำขอเมื่อ{" "}
-              {dateTimeFmt.format(new Date(order.created_at))}
-            </p>
           </div>
 
           <button
