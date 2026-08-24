@@ -23,7 +23,8 @@ export const createProductSchema = z.object({
         sequence: z.number().int().nullish(),
       })
     )
-    .min(1, "ต้องมีรูปสินค้าอย่างน้อย 1 รูป"),
+    .nullish()
+    .default([]),
   locations: z
     .array(
       z.object({

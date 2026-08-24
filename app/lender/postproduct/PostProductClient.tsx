@@ -15,6 +15,7 @@ import {
   Layers,
   Loader2,
   MapPin,
+  Package,
   Plus,
   ShieldAlert,
   ShieldCheck,
@@ -170,10 +171,6 @@ export default function PostProductClient({ categories }: PostProductClientProps
       setErrorMessage("กรุณาระบุเงินประกันให้ถูกต้อง");
       return;
     }
-    if (imageUrls.length === 0) {
-      setErrorMessage("กรุณาเพิ่มรูปภาพสินค้าอย่างน้อย 1 รูป");
-      return;
-    }
 
     try {
       setIsSubmitting(true);
@@ -184,11 +181,7 @@ export default function PostProductClient({ categories }: PostProductClientProps
         originalPrice: originalPrice ? Number(originalPrice) : undefined,
         rentalFeePerDay: fee,
         deposit: dep,
-        images: imageUrls.map((url, idx) => ({
-          imageUrl: url,
-          isPrimary: idx === 0,
-          sequence: idx,
-        })),
+        images: [],
         locations: [
           {
             description: locationDesc.trim() || "จุดนัดรับที่ตกลงกัน",
@@ -402,80 +395,42 @@ export default function PostProductClient({ categories }: PostProductClientProps
           </div>
         </section>
 
-        {/* Section 3: รูปภาพสินค้า */}
+        {/* Section 3: รูปภาพอุปกรณ์ */}
         <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-7">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
             <div className="flex items-center gap-2.5">
               <Camera className="h-5 w-5 text-sky-600" />
-              <h2 className="text-lg font-bold text-slate-900">3. รูปภาพอุปกรณ์ ({imageUrls.length})</h2>
+              <h2 className="text-lg font-bold text-slate-900">3. รูปภาพอุปกรณ์</h2>
             </div>
-            <span className="text-xs text-slate-400">รูปแรกคือรูปหลัก</span>
+            <span className="text-xs text-slate-400">ภาพตัวอย่างสินค้า</span>
           </div>
 
-          {/* Quick Presets */}
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-slate-500 mb-2">เลือกรูปตัวอย่างด่วน:</p>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_IMAGES.map((preset, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleAddImage(preset.url)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50/70 px-3 py-1 text-xs font-medium text-sky-800 transition hover:bg-sky-100"
-                >
-                  <Plus className="h-3 w-3" />
-                  {preset.label}
-                </button>
-              ))}
+          <div className="flex flex-col sm:flex-row items-center gap-5">
+            {/* กล่องรูปภาพ Placeholder เหมือนในรูป */}
+            <div className="relative flex aspect-square w-48 sm:w-56 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-[#eaf0f6] shadow-sm">
+              <Package className="h-20 w-20 text-[#a0b5ce]" strokeWidth={1.5} />
             </div>
-          </div>
 
-          {/* Add custom URL */}
-          <div className="flex gap-2 mb-5">
-            <input
-              type="url"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              placeholder="กรอก URL รูปภาพเพิ่มเติม เช่น https://images.unsplash.com/..."
-              className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 transition focus:border-[#1b3554] focus:outline-none focus:ring-2 focus:ring-sky-100"
-            />
-            <button
-              type="button"
-              onClick={() => handleAddImage(newImageUrl)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-900"
-            >
-              <Plus className="h-4 w-4" />
-              เพิ่มรูป
-            </button>
-          </div>
-
-          {/* Image Previews */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {imageUrls.map((url, idx) => (
-              <div
-                key={idx}
-                className="group relative aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
+            {/* กล่องปุ่มเพิ่มรูป (กดแล้วยังไม่มีอะไรเกิดขึ้นตามต้องการ) */}
+            <div className="flex flex-1 flex-col justify-center space-y-3 w-full">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                }}
+                className="group flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-7 text-center transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.99]"
               >
-                <img
-                  src={url}
-                  alt={`Product Image ${idx + 1}`}
-                  className="h-full w-full object-cover"
-                />
-                {idx === 0 && (
-                  <span className="absolute left-2 top-2 rounded-lg bg-[#1b3554]/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                    รูปหลัก
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(idx)}
-                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600/90 text-white opacity-0 shadow-sm transition group-hover:opacity-100 hover:bg-rose-700"
-                  title="ลบรูปนี้"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition group-hover:scale-105">
+                  <Plus className="h-5 w-5 text-slate-600" />
+                </div>
+                <span className="mt-3 text-sm font-semibold text-slate-700">
+                  เพิ่มรูปภาพอุปกรณ์
+                </span>
+                <span className="mt-1 text-xs text-slate-400">
+                  รองรับไฟล์ PNG, JPG หรือ WEBP (ขนาดไม่เกิน 5MB)
+                </span>
+              </button>
+            </div>
           </div>
         </section>
 
