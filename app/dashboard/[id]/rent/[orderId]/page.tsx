@@ -54,19 +54,36 @@ export default async function UserRentalOrderDetailPage({
   }
 
   const ownerId = item.user_id ?? "";
-  const ownerRes = ownerId
-    ? await admin
-        .from("useraccount")
-        .select("firstname, lastname, username, status")
-        .eq("user_id", ownerId)
-        .maybeSingle()
-    : { data: null };
+  const [ownerRes, ownerPhoneRes] = await Promise.all([
+    ownerId
+      ? admin
+          .from("useraccount")
+          .select("user_id, username, firstname, lastname, email, avatar_url, updated_at, status")
+          .eq("user_id", ownerId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    ownerId
+      ? admin
+          .from("userphones")
+          .select("phone")
+          .eq("user_id", ownerId)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const owner = ownerRes.data;
-  const ownerName =
+  const ownerFullName =
     [owner?.firstname, owner?.lastname].filter(Boolean).join(" ").trim() ||
     owner?.username ||
     "ผู้ให้เช่า";
+
+  const v = owner?.updated_at
+    ? new Date(owner.updated_at).getTime()
+    : Date.now();
+  const avatarUrl = owner?.avatar_url
+    ? `/api/avatar?id=${owner.user_id}&v=${v}`
+    : null;
 
   const primaryImage =
     imageRes.data?.find((i) => i.is_primary)?.image_url ??
@@ -103,7 +120,11 @@ export default async function UserRentalOrderDetailPage({
     },
     owner: {
       id: ownerId,
-      name: ownerName,
+      username: owner?.username || "lender",
+      fullName: ownerFullName,
+      email: owner?.email || null,
+      phone: ownerPhoneRes.data?.phone || null,
+      avatarUrl,
       status: owner?.status || "Active",
     },
     payments: (paymentsRes.data || []).map((p) => ({

@@ -16,12 +16,15 @@ import {
   CreditCard,
   Image as ImageIcon,
   Loader2,
+  Mail,
   MapPin,
   MessageCircle,
   Package,
+  Phone,
   Printer,
   QrCode,
   Upload,
+  User,
   Wallet,
   X,
   XCircle,
@@ -54,7 +57,11 @@ export interface RentOrderDetailData {
   };
   owner: {
     id: string;
-    name: string;
+    username: string;
+    fullName: string;
+    email: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
     status: string;
   };
   payments: Array<{
@@ -377,7 +384,68 @@ export default function RentOrderDetailClient({
               )}
             </section>
 
-            {/* 2) ข้อมูลอุปกรณ์ + ผู้ให้เช่า */}
+            {/* 2) ข้อมูลผู้ให้เช่า */}
+            <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#c0e6fd]/30 text-[#1b3554]">
+                    <User className="h-5 w-5" />
+                  </span>
+                  <h2 className="text-lg font-bold text-slate-900">ข้อมูลผู้ให้เช่า</h2>
+                </div>
+                <Link
+                  href={owner.id ? `/chat?userId=${owner.id}` : "/chat"}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1b3554] transition hover:bg-sky-50"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>แชทคุยกับผู้ให้เช่า</span>
+                </Link>
+              </div>
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#1b3554] to-[#3f6593] text-xl font-bold text-white shadow-sm overflow-hidden">
+                  {owner.avatarUrl ? (
+                    <img src={owner.avatarUrl} alt={owner.username} className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{(owner.fullName || owner.username || "L").charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={owner.id ? `/user/${owner.id}` : "#"}
+                      className="font-bold text-base text-slate-900 transition hover:text-[#1b3554]"
+                    >
+                      {owner.fullName || owner.username}
+                    </Link>
+                    <span className="text-xs text-slate-400">(@{owner.username})</span>
+                    {owner.status === "Active" && (
+                      <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600">
+                        <BadgeCheck className="h-4 w-4" />
+                        ยืนยันตัวตน
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
+                    {owner.phone && (
+                      <p className="flex items-center gap-1">
+                        <Phone className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{owner.phone}</span>
+                      </p>
+                    )}
+                    {owner.email && (
+                      <p className="flex items-center gap-1">
+                        <Mail className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{owner.email}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 3) ข้อมูลอุปกรณ์ที่เช่า */}
             <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">
                 ข้อมูลอุปกรณ์ที่เช่า
@@ -402,32 +470,13 @@ export default function RentOrderDetailClient({
                     {item.name}
                   </Link>
                   <p className="text-xs text-slate-500">
-                    ค่าเช่ารายวัน:{" "}
+                    อัตราค่าเช่าที่ตั้งไว้:{" "}
                     <strong className="text-slate-700">{thb.format(rentPerDay)}</strong> / วัน
                   </p>
-
-                  <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
-                    <span className="text-slate-500">ผู้ให้เช่า:</span>
-                    <Link
-                      href={owner.id ? `/user/${owner.id}` : "#"}
-                      className="inline-flex items-center gap-1.5 font-semibold text-[#1b3554] hover:underline"
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1b3554] text-[10px] text-white">
-                        {owner.name.charAt(0).toUpperCase()}
-                      </span>
-                      <span>{owner.name}</span>
-                      {owner.status === "Active" && (
-                        <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
-                      )}
-                    </Link>
-                    <Link
-                      href="/chat"
-                      className="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 hover:underline"
-                    >
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      <span>แชทสอบถาม</span>
-                    </Link>
-                  </div>
+                  <p className="text-xs text-slate-500">
+                    เงินประกันอุปกรณ์:{" "}
+                    <strong className="text-slate-700">{thb.format(deposit)}</strong>
+                  </p>
                 </div>
               </div>
 
