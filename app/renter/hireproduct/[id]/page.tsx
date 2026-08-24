@@ -9,15 +9,16 @@ import {
   Clock3,
   MapPin,
   MessageCircle,
-  Sparkles,
   Star,
+  Tag,
   WalletCards,
 } from "lucide-react";
 
+import BookingWidget from "@/components/products/BookingWidget";
 import { StatusChip } from "@/components/products/designSystem";
 import ProductGallery from "@/components/products/ProductGallery";
-import { getMockProductById, getMockProducts } from "@/lib/mock/product";
-import type { ItemCondition, ItemStatus } from "@/lib/types/product";
+import { getProductById } from "@/lib/products/queries";
+import type { ItemStatus } from "@/lib/types/product";
 
 const thbFormatter = new Intl.NumberFormat("th-TH", {
   style: "currency",
@@ -41,12 +42,6 @@ const statusContent: Record<
   inactive: { label: "ปิดประกาศ", tone: "inactive" },
 };
 
-const conditionLabels: Record<ItemCondition, string> = {
-  "like-new": "เหมือนใหม่",
-  good: "สภาพดี",
-  fair: "ผ่านการใช้งาน",
-};
-
 function formatDate(date: string) {
   return dateFormatter.format(new Date(`${date}T00:00:00+07:00`));
 }
@@ -60,15 +55,13 @@ function ProductStatus({ status }: { status: ItemStatus }) {
   return <StatusChip tone={content.tone}>{content.label}</StatusChip>;
 }
 
-export function generateStaticParams() {
-  return getMockProducts().map((product) => ({ id: product.id }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function HireProductDetailPage({
   params,
 }: PageProps<"/renter/hireproduct/[id]">) {
   const { id } = await params;
-  const product = getMockProductById(id);
+  const product = await getProductById(id);
 
   if (!product) {
     notFound();
@@ -142,10 +135,10 @@ export default async function HireProductDetailPage({
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <Sparkles aria-hidden="true" className="h-5 w-5 text-sky-600" />
-                  <p className="mt-3 text-xs text-slate-500">สภาพสินค้า</p>
+                  <Tag aria-hidden="true" className="h-5 w-5 text-sky-600" />
+                  <p className="mt-3 text-xs text-slate-500">ราคาเต็ม</p>
                   <p className="mt-1 text-lg font-semibold text-[#1b3554]">
-                    {conditionLabels[product.condition]}
+                    {thbFormatter.format(product.originalPrice)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -391,8 +384,18 @@ export default async function HireProductDetailPage({
             </section>
           </article>
 
-          {/* Reserved space for the BookingWidget that will be added later. */}
-          <div aria-hidden="true" className="hidden min-h-px lg:block" />
+          <div className="lg:sticky lg:top-6">
+            <BookingWidget
+              productId={product.id}
+              pricePerDay={product.pricePerDay}
+              deposit={product.deposit}
+              ownerId={product.ownerId}
+              ownerName={product.owner.displayName}
+              ownerIsVerified={product.owner.isVerified}
+              ownerRating={product.owner.rating}
+              ownerReviewCount={product.owner.reviewCount}
+            />
+          </div>
         </div>
       </div>
     </div>
