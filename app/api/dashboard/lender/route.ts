@@ -13,12 +13,8 @@ export async function GET() {
 
     let userId = user?.id;
     if (!userId) {
-      const { data: firstUser } = await admin
-        .from("useraccount")
-        .select("user_id")
-        .limit(1)
-        .maybeSingle();
-      userId = firstUser?.user_id || "a1111111-1111-1111-1111-111111111111";
+      // Default to yoklnw67 (lender) if not logged in
+      userId = "b5041d3d-ba07-4230-96fa-3fbfb4411439";
     }
 
     // 1. ดึงรายการสินค้าทั้งหมดที่ผู้ให้เช่าคนนี้ลงประกาศไว้
@@ -68,16 +64,48 @@ export async function GET() {
             item_name
           ),
           renter:user_id (
+            user_id,
             username,
             avatar_url,
-            phone
+            firstname,
+            lastname
           )
         `)
         .in("item_id", itemIds)
         .order("created_at", { ascending: false });
 
-      if (!ordersError && orders) {
-        incomingOrders = orders;
+      if (ordersError) {
+        console.error("Error fetching incoming orders:", ordersError);
+      } else if (orders) {
+        // Fetch renter phones
+        const renterUserIds = orders.map((o) => o.user_id).filter(Boolean);
+        const { data: phones } = await admin
+          .from("userphones")
+          .select("user_id, phone")
+          .in("user_id", renterUserIds);
+
+        const phoneMap = new Map<string, string>();
+        (phones || []).forEach((p) => {
+          if (!phoneMap.has(p.user_id)) {
+            phoneMap.set(p.user_id, p.phone);
+          }
+        });
+
+        incomingOrders = orders.map((o: any) => ({
+          ...o,
+          renter: o.renter
+            ? {
+                username:
+                  o.renter.username ||
+                  `${o.renter.firstname || ""} ${o.renter.lastname || ""}`.trim() ||
+                  "ผู้เช่า",
+                avatarUrl: o.renter.avatar_url
+                  ? `/api/avatar?id=${o.renter.user_id}`
+                  : null,
+                phone: phoneMap.get(o.renter.user_id) || null,
+              }
+            : null,
+        }));
       }
     }
 
@@ -85,11 +113,22 @@ export async function GET() {
     const totalItems = itemList.length;
     const availableItems = itemList.filter((i) => i.status === "available").length;
     const rentedItems = itemList.filter((i) => i.status === "rented").length;
-    const pendingRequests = incomingOrders.filter((o) => o.status === "requested" || o.status === "awaiting_payment").length;
-    
+    const pendingRequests = incomingOrders.filter(
+      (o) => o.status === "requested" || o.status === "awaiting_payment"
+    ).length;
+
     const estimatedIncome = incomingOrders
-      .filter((o) => o.status === "paid" || o.status === "completed" || o.status === "item_sent")
-      .reduce((sum, o) => sum + (Number(o.rental_fee) || Number(o.total_paid) || 0), 0);
+      .filter(
+        (o) =>
+          o.status === "paid" ||
+          o.status === "completed" ||
+          o.status === "item_sent"
+      )
+      .reduce(
+        (sum, o) =>
+          sum + (Number(o.rental_fee) || Number(o.total_paid) || 0),
+        0
+      );
 
     return NextResponse.json({
       items: itemList,
@@ -108,7 +147,13 @@ export async function GET() {
       {
         items: [],
         incomingOrders: [],
-        metrics: { totalItems: 0, availableItems: 0, rentedItems: 0, pendingRequests: 0, estimatedIncome: 0 },
+        metrics: {
+          totalItems: 0,
+          availableItems: 0,
+          rentedItems: 0,
+          pendingRequests: 0,
+          estimatedIncome: 0,
+        },
       },
       { status: 500 }
     );
