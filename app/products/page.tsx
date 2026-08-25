@@ -3,7 +3,14 @@ import { getCategories, getProducts } from "@/lib/products/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
+  const params = await searchParams;
+  const initialQuery = params?.q || "";
+
   const [itemCategories, products] = await Promise.all([
     getCategories(),
     getProducts(),
@@ -24,7 +31,11 @@ export default async function ProductsPage() {
           </p>
         </div>
 
-        <ProductCatalog itemCategories={itemCategories} products={products} />
+        <ProductCatalog
+          itemCategories={itemCategories}
+          products={products}
+          initialSearchQuery={initialQuery}
+        />
       </div>
     </section>
   );
