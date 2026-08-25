@@ -7,6 +7,7 @@ export type CatalogSort =
   | "price-desc";
 
 export type ProductFilterState = {
+  searchQuery: string;
   selectedCategoryIds: string[];
   minPrice: string;
   maxPrice: string;
@@ -17,6 +18,7 @@ export type ProductFilterState = {
 };
 
 export type ProductFilterCriteria = {
+  searchQuery: string;
   minPrice: number | null;
   maxPrice: number | null;
   minRating: number;
@@ -32,8 +34,9 @@ export type ProductCategoryOption = {
   count: number;
 };
 
-export function createInitialProductFilters(): ProductFilterState {
+export function createInitialProductFilters(initialSearch = ""): ProductFilterState {
   return {
+    searchQuery: initialSearch,
     selectedCategoryIds: [],
     minPrice: "",
     maxPrice: "",
@@ -59,6 +62,7 @@ export function createFilterCriteria(filters: ProductFilterState) {
   );
 
   const criteria: ProductFilterCriteria = {
+    searchQuery: (filters.searchQuery || "").trim().toLowerCase(),
     minPrice,
     maxPrice,
     minRating: filters.minRating,
@@ -76,6 +80,13 @@ export function matchesNonCategoryFilters(
   criteria: ProductFilterCriteria,
 ) {
   if (criteria.hasInvalidRange) return false;
+
+  // ค้นหาตามคำค้นหา (ชื่อสินค้า, รายละเอียด, หมวดหมู่)
+  const matchesSearch =
+    !criteria.searchQuery ||
+    (product.title && product.title.toLowerCase().includes(criteria.searchQuery)) ||
+    (product.description && product.description.toLowerCase().includes(criteria.searchQuery)) ||
+    (product.categoryName && product.categoryName.toLowerCase().includes(criteria.searchQuery));
 
   const matchesMinPrice =
     criteria.minPrice === null || product.pricePerDay >= criteria.minPrice;
@@ -102,6 +113,7 @@ export function matchesNonCategoryFilters(
     });
 
   return (
+    matchesSearch &&
     matchesMinPrice &&
     matchesMaxPrice &&
     matchesRating &&

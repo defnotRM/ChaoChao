@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Grid2X2, List, SlidersHorizontal } from "lucide-react";
+import { Grid2X2, List, Search, SlidersHorizontal, X } from "lucide-react";
 
 import type { ItemCategoryRow, Product } from "@/lib/types/product";
 import ProductCard from "./ProductCard";
@@ -19,6 +19,7 @@ import {
 type ProductCatalogProps = {
   itemCategories: ItemCategoryRow[];
   products: Product[];
+  initialSearchQuery?: string;
 };
 
 type CatalogLayout = "grid" | "list";
@@ -26,8 +27,11 @@ type CatalogLayout = "grid" | "list";
 export default function ProductCatalog({
   itemCategories,
   products,
+  initialSearchQuery = "",
 }: ProductCatalogProps) {
-  const [filters, setFilters] = useState(createInitialProductFilters);
+  const [filters, setFilters] = useState(() =>
+    createInitialProductFilters(initialSearchQuery),
+  );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [layout, setLayout] = useState<CatalogLayout>("grid");
   const [sortBy, setSortBy] = useState<CatalogSort>("rating-desc");
@@ -71,6 +75,35 @@ export default function ProductCatalog({
 
   return (
     <div>
+      {/* ช่องค้นหาอุปกรณ์ที่ต้องการ */}
+      <div className="mb-6">
+        <div className="relative max-w-2xl">
+          <input
+            type="text"
+            value={filters.searchQuery}
+            onChange={(event) =>
+              updateFilters({ searchQuery: event.target.value })
+            }
+            placeholder="ค้นหาอุปกรณ์ที่ต้องการ (เช่น กล้อง, ไมค์, เต็นท์, สว่าน...)"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-10 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+          />
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+          />
+          {filters.searchQuery && (
+            <button
+              type="button"
+              onClick={() => updateFilters({ searchQuery: "" })}
+              aria-label="ล้างคำค้นหา"
+              className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={() => setFiltersOpen((current) => !current)}
